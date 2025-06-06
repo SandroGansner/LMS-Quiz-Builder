@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Konfigurator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 6px;
+            background-color: #fdfdfd;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"],
+        input[type="url"],
+        select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        select {
+            background-color: #fff;
+        }
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        .color-input-wrapper input[type="color"] {
+            width: 50px;
+            height: 38px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .color-input-wrapper input[type="text"] {
+            flex-grow: 1;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.add-question-btn {
+            background-color: #27ae60;
+        }
+        button.add-question-btn:hover {
+            background-color: #229954;
+        }
+        button.remove-question-btn, button.remove-option-btn {
+            background-color: #e74c3c;
+            margin-left: 10px;
+        }
+        button.remove-question-btn:hover, button.remove-option-btn:hover {
+            background-color: #c0392b;
+        }
+        .question-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .options-group {
+            margin-top: 10px;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .option-item input[type="radio"] {
+            margin-right: 10px;
+        }
+        .output-area {
+            background-color: #e8f0f7;
+            border: 1px solid #c2dbeb;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .output-area textarea {
+            width: 100%;
+            height: 120px;
+            background-color: #eef5fb;
+            border: 1px solid #cce1f5;
+            padding: 10px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .preview-area {
+            margin-top: 30px;
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .preview-area iframe {
+            width: 100%;
+            height: 650px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .share-link {
+            font-size: 0.9em;
+            margin-top: 10px;
+            word-break: break-all;
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .message-box.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Konfigurator</h1>
+        <p>Erstelle und passe dein interaktives Quiz an. Alle Änderungen werden sofort in der Vorschau angezeigt.</p>
+
+        <div class="section">
+            <h2>Allgemeine Einstellungen</h2>
+            <div class="form-group">
+                <label for="brandSelect">Marke auswählen:</label>
+                <select id="brandSelect">
+                    <option value="lenzerheide">Lenzerheide</option>
+                    <option value="bikeKingdom">Bike Kingdom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="quizTitle">Quiz Titel:</label>
+                <input type="text" id="quizTitle" value="Lenzerheide Sommer-Erlebnisse Quiz">
+            </div>
+            <div class="form-group">
+                <label for="primaryColor">Primärfarbe (z.B. Quiz-Hintergrund):</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="primaryColorPicker" value="#FF0000">
+                    <input type="text" id="primaryColor" value="#FF0000" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="accentColor">Akzentfarbe (z.B. Button Textfarbe):</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="accentColorPicker" value="#B30000">
+                    <input type="text" id="accentColor" value="#B30000" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="optionLetterColor">Farbe Optionsbuchstabe (A., B., C.):</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="optionLetterColorPicker" value="#FF0000">
+                    <input type="text" id="optionLetterColor" value="#FF0000" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="buttonHoverColor">Button Hover Textfarbe:</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="buttonHoverColorPicker" value="#FF0000">
+                    <input type="text" id="buttonHoverColor" value="#FF0000" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Quiz Fragen</h2>
+            <div id="questions-list">
+                <!-- Frage 1 -->
+                <div class="question-item" data-index="0">
+                    <div class="form-group">
+                        <label>Frage 1:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Welches Maskottchen sorgt bei Kindern in Lenzerheide für strahlende Augen?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-0" id="answer-0-0" value="0">
+                            <label for="answer-0-0">
+                                <input type="text" value="Pumuckl" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="0" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-0" id="answer-0-1" value="1" checked>
+                            <label for="answer-0-1">
+                                <input type="text" value="Globi" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="0" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-0" id="answer-0-2" value="2">
+                            <label for="answer-0-2">
+                                <input type="text" value="Paddington Bär" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="0" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-0" id="answer-0-3" value="3">
+                            <label for="answer-0-3">
+                                <input type="text" value="Pikachu" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="0" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="0">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Familienerlebnisse/Globi-in-Lenzerheide" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Genau richtig! Globi ist der Star bei den Kindern in Lenzerheide und hat sogar einen eigenen Wanderweg.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Das war leider nicht die richtige Antwort. Globi ist in Lenzerheide bei den Kindern besonders beliebt!</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="0">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 2 -->
+                <div class="question-item" data-index="1">
+                    <div class="form-group">
+                        <label>Frage 2:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Welches Event verwandelt Lenzerheide im Juni 2025 in ein Paradies für Oldtimer-Fans?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-1" id="answer-1-0" value="0">
+                            <label for="answer-1-0">
+                                <input type="text" value="Heidsee Classics" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="1" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-1" id="answer-1-1" value="1" checked>
+                            <label for="answer-1-1">
+                                <input type="text" value="Lenzerheide Motor Classics" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="1" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-1" id="answer-1-2" value="2">
+                            <label for="answer-1-2">
+                                <input type="text" value="Retro Race Days" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="1" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-1" id="answer-1-3" value="3">
+                            <label for="answer-1-3">
+                                <input type="text" value="Vintage Speed Festival" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="1" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="1">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Aktuell/Veranstaltungskalender/12.Lenzerheide-Motor-Classics-2025_ed_14297208" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Exzellent! Die Lenzerheide Motor Classics sind ein Muss für alle Fans von klassischen Fahrzeugen.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Nicht ganz. Es sind die berühmten Lenzerheide Motor Classics, die die Herzen von Oldtimer-Fans höher schlagen lassen.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="1">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 3 -->
+                <div class="question-item" data-index="2">
+                    <div class="form-group">
+                        <label>Frage 3:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Wie viele Kilometer umfasst der bekannte Radmarathon „Alpen Challenge“?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-2" id="answer-2-0" value="0">
+                            <label for="answer-2-0">
+                                <input type="text" value="50 km oder 100 km" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="2" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-2" id="answer-2-1" value="1">
+                            <label for="answer-2-1">
+                                <input type="text" value="75 km oder 150 km" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="2" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-2" id="answer-2-2" value="2" checked>
+                            <label for="answer-2-2">
+                                <input type="text" value="117 km oder 191 km" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="2" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-2" id="answer-2-3" value="3">
+                            <label for="answer-2-3">
+                                <input type="text" value="200 km oder 250 km" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="2" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="2">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://www.alpenchallengelenzerheide.ch/" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Stimmt genau! Die Alpen Challenge bietet diese anspruchsvollen Distanzen für ambitionierte Radfahrer.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Knapp daneben. Die richtigen Distanzen der Alpen Challenge sind 117 km oder 191 km. Beides echte Herausforderungen!</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="2">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 4 -->
+                <div class="question-item" data-index="3">
+                    <div class="form-group">
+                        <label>Frage 4:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Was ist der Heidsee in Lenzerheide idealerweise im Sommer?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-3" id="answer-3-0" value="0">
+                            <label for="answer-3-0">
+                                <input type="text" value="Eisbahn" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="3" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-3" id="answer-3-1" value="1" checked>
+                            <label for="answer-3-1">
+                                <input type="text" value="Badesee und Wassersportplatz" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="3" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-3" id="answer-3-2" value="2">
+                            <label for="answer-3-2">
+                                <input type="text" value="Fischzuchtanlage" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="3" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-3" id="answer-3-3" value="3">
+                            <label for="answer-3-3">
+                                <input type="text" value="Skisprungschanze" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="3" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="3">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Weitere-Sommeraktivitaeten" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Absolut richtig! Der Heidsee ist im Sommer ein Paradies zum Baden, Planschen und für diverse Wassersportarten.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Leider falsch. Im Sommer verwandelt sich der Heidsee in einen beliebten Badesee und Wassersportplatz.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="3">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 5 -->
+                <div class="question-item" data-index="4">
+                    <div class="form-group">
+                        <label>Frage 5:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Wie viele Male fand die Heidsee Olympiade bereits statt (Stand Juli 2025)?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-4" id="answer-4-0" value="0">
+                            <label for="answer-4-0">
+                                <input type="text" value="10 Mal" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="4" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-4" id="answer-4-1" value="1">
+                            <label for="answer-4-1">
+                                <input type="text" value="20 Mal" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="4" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-4" id="answer-4-2" value="2" checked>
+                            <label for="answer-4-2">
+                                <input type="text" value="47 Mal" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="4" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-4" id="answer-4-3" value="3">
+                            <label for="answer-4-3">
+                                <input type="text" value="50 Mal" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="4" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="4">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Aktuell/Veranstaltungskalender/47.Heidsee-Olympiade_ed_18603933" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Korrekt! Die 47. Heidsee Olympiade ist für Juli 2025 geplant und verspricht wieder viel Spass.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Das stimmt nicht ganz. Die 47. Ausgabe der traditionellen Heidsee Olympiade ist für Juli 2025 angesetzt.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="4">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 6 -->
+                <div class="question-item" data-index="5">
+                    <div class="form-group">
+                        <label>Frage 6:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Welches Highlight bietet der Zauberwald Lenzerheide jedes Jahr im Dezember?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-5" id="answer-5-0" value="0">
+                            <label for="answer-5-0">
+                                <input type="text" value="Geisterbahn" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="5" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-5" id="answer-5-1" value="1" checked>
+                            <label for="answer-5-1">
+                                <input type="text" value="Lichtinstallationen und Weihnachtsmarkt" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="5" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-5" id="answer-5-2" value="2">
+                            <label for="answer-5-2">
+                                <input type="text" value="Hochseilgarten" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="5" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-5" id="answer-5-3" value="3">
+                            <label for="answer-5-3">
+                                <input type="text" value="Open-Air Kino" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="5" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="5">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Top-Events/Kultur-und-Musik/Zauberwald" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Genau! Der Zauberwald verzaubert jedes Jahr im Dezember mit einzigartigen Lichtinstallationen und einem stimmungsvollen Weihnachtsmarkt.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Nicht ganz. Der Zauberwald ist berühmt für seine wunderschönen Lichtinstallationen und den Weihnachtsmarkt in winterlicher Atmosphäre.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="5">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 7 -->
+                <div class="question-item" data-index="6">
+                    <div class="form-group">
+                        <label>Frage 7:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Wie lange dauert der beliebte Globi-Kindertag in Lenzerheide jeweils?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-6" id="answer-6-0" value="0">
+                            <label for="answer-6-0">
+                                <input type="text" value="1 Stunde" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="6" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-6" id="answer-6-1" value="1">
+                            <label for="answer-6-1">
+                                <input type="text" value="3 Stunden" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="6" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-6" id="answer-6-2" value="2" checked>
+                            <label for="answer-6-2">
+                                <input type="text" value="Ganztägiges Event" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="6" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-6" id="answer-6-3" value="3">
+                            <label for="answer-6-3">
+                                <input type="text" value="Nur eine halbe Stunde" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="6" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="6">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Aktuell/Veranstaltungskalender/Globi-Kindertag_ed_16363847" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Richtig! Der Globi Kindertag ist ein ganztägiges Event, das den Kindern viel Zeit für Spass und Abenteuer mit Globi bietet.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Das ist nicht die richtige Dauer. Der Globi Kindertag ist als ganztägiges Event konzipiert, um den Kleinen ein unvergessliches Erlebnis zu bieten.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="6">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 8 -->
+                <div class="question-item" data-index="7">
+                    <div class="form-group">
+                        <label>Frage 8:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Welche Sportart kannst du definitiv NICHT im Sommer am Heidsee ausüben?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-7" id="answer-7-0" value="0">
+                            <label for="answer-7-0">
+                                <input type="text" value="Stand-Up-Paddling" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="7" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-7" id="answer-7-1" value="1">
+                            <label for="answer-7-1">
+                                <input type="text" value="Schwimmen" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="7" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-7" id="answer-7-2" value="2" checked>
+                            <label for="answer-7-2">
+                                <input type="text" value="Skispringen" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="7" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-7" id="answer-7-3" value="3">
+                            <label for="answer-7-3">
+                                <input type="text" value="Pedalofahren" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="7" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="7">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Weitere-Sommeraktivitaeten" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Perfekt! Skispringen ist eine Wintersportart und im Sommer am Heidsee definitiv nicht möglich. Dafür gibt es viele andere tolle Wassersportarten!</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Leider falsch. Während man vieles am Heidsee machen kann, gehört Skispringen nicht zu den Sommeraktivitäten. Das ist eher was für den Winter!</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="7">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 9 -->
+                <div class="question-item" data-index="8">
+                    <div class="form-group">
+                        <label>Frage 9:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Welche Aktivität ist im Sommer in Lenzerheide besonders beliebt bei Abenteuerlustigen?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-8" id="answer-8-0" value="0">
+                            <label for="answer-8-0">
+                                <input type="text" value="Eislaufen" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="8" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-8" id="answer-8-1" value="1" checked>
+                            <label for="answer-8-1">
+                                <input type="text" value="Mountainbiken" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="8" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-8" id="answer-8-2" value="2">
+                            <label for="answer-8-2">
+                                <input type="text" value="Skifahren" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="8" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-8" id="answer-8-3" value="3">
+                            <label for="answer-8-3">
+                                <input type="text" value="Schlitteln" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="8" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="8">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Biken" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Genau richtig! Mountainbiken ist im Sommer in Lenzerheide bei Abenteuerlustigen besonders beliebt.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Nicht ganz. Mountainbiken ist die beliebteste Sommeraktivität für Abenteuerlustige in Lenzerheide.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="8">Frage entfernen</button>
+                </div>
+
+                <!-- Frage 10 -->
+                <div class="question-item" data-index="9">
+                    <div class="form-group">
+                        <label>Frage 10:</label>
+                        <textarea data-field="question" placeholder="Fragetext">Welcher Wanderweg in Lenzerheide ist besonders für Familien geeignet?</textarea>
+                    </div>
+                    <div class="form-group options-group">
+                        <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                        <div class="option-item">
+                            <input type="radio" name="answer-9" id="answer-9-0" value="0">
+                            <label for="answer-9-0">
+                                <input type="text" value="Gletscherweg" data-option-index="0" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="9" data-option-index="0">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-9" id="answer-9-1" value="1" checked>
+                            <label for="answer-9-1">
+                                <input type="text" value="Globi-Wanderweg" data-option-index="1" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="9" data-option-index="1">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-9" id="answer-9-2" value="2">
+                            <label for="answer-9-2">
+                                <input type="text" value="Panoramaweg" data-option-index="2" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="9" data-option-index="2">x</button>
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="answer-9" id="answer-9-3" value="3">
+                            <label for="answer-9-3">
+                                <input type="text" value="Hochalpiner Weg" data-option-index="3" placeholder="Antworttext">
+                            </label>
+                            <button type="button" class="remove-option-btn" data-question-index="9" data-option-index="3">x</button>
+                        </div>
+                        <button type="button" class="add-option-btn" data-question-index="9">Option hinzufügen</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Link 'Mehr erfahren' (URL, optional):</label>
+                        <input type="url" data-field="moreInfo" value="https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Familienerlebnisse/Globi-in-Lenzerheide" placeholder="z.B. https://example.com/info">
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei richtiger Antwort:</label>
+                        <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">Richtig! Der Globi-Wanderweg ist besonders für Familien geeignet und bietet viel Spaß für Kinder.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Feedback bei falscher Antwort:</label>
+                        <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">Leider falsch. Der Globi-Wanderweg ist der familienfreundlichste Wanderweg in Lenzerheide.</textarea>
+                    </div>
+                    <button type="button" class="remove-question-btn" data-question-index="9">Frage entfernen</button>
+                </div>
+            </div>
+            <button class="add-question-btn" id="addQuestionBtn">Frage hinzufügen</button>
+        </div>
+
+        <div class="section">
+            <h2>Einbettungscode</h2>
+            <p>Kopiere diesen Code und füge ihn in deine Landingpage ein:</p>
+            <div class="output-area">
+                <textarea id="embed-code-output" readonly></textarea>
+                <button id="copyEmbedCodeBtn">Code kopieren</button>
+            </div>
+            <p>Direkter Link zum Teilen des Quiz:</p>
+            <div class="output-area">
+                <p class="share-link" id="share-link-output"></p>
+                <button id="copyShareLinkBtn">Link kopieren</button>
+            </div>
+        </div>
+
+        <div class="preview-area">
+            <h2>Vorschau</h2>
+            <button id="fullscreenPreviewBtn">Vollbild-Vorschau</button>
+            <iframe id="quiz-preview" src=""></iframe>
+        </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        // Globale Variable für Quiz-Daten
+        let currentQuizData = [];
+
+        // DOM-Elemente
+        const questionsList = document.getElementById('questions-list');
+        const quizPreview = document.getElementById('quiz-preview');
+        const embedCodeOutput = document.getElementById('embed-code-output');
+        const shareLinkOutput = document.getElementById('share-link-output');
+        const messageBox = document.getElementById('messageBox');
+        const quizTitleInput = document.getElementById('quizTitle');
+        const brandSelect = document.getElementById('brandSelect');
+        const primaryColorPicker = document.getElementById('primaryColorPicker');
+        const primaryColorInput = document.getElementById('primaryColor');
+        const accentColorPicker = document.getElementById('accentColorPicker');
+        const accentColorInput = document.getElementById('accentColor');
+        const optionLetterColorPicker = document.getElementById('optionLetterColorPicker');
+        const optionLetterColorInput = document.getElementById('optionLetterColor');
+        const buttonHoverColorPicker = document.getElementById('buttonHoverColorPicker');
+        const buttonHoverColorInput = document.getElementById('buttonHoverColor');
+
+        /**
+         * Zeigt eine temporäre Nachricht an den Benutzer an.
+         * @param {string} message - Die anzuzeigende Nachricht.
+         * @param {number} duration - Die Dauer in Millisekunden, für die die Nachricht sichtbar sein soll.
+         */
+        function showMessage(message, duration = 2000) {
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
+        /**
+         * Wendet vordefinierte Einstellungen (Farben, Logo) basierend auf der Markenauswahl an.
+         * @param {string} brand - Die ausgewählte Marke ('lenzerheide' oder 'bikeKingdom').
+         */
+        function applyPresets(brand) {
+            console.log('Applying presets for brand:', brand);
+            brand = brand.toLowerCase();
+            if (brand === 'lenzerheide') {
+                console.log('Setting Lenzerheide colors');
+                primaryColorInput.value = '#FF0000';
+                primaryColorPicker.value = '#FF0000';
+                accentColorInput.value = '#B30000';
+                accentColorPicker.value = '#B30000';
+                optionLetterColorInput.value = '#FF0000';
+                optionLetterColorPicker.value = '#FF0000';
+                buttonHoverColorInput.value = '#FF0000';
+                buttonHoverColorPicker.value = '#FF0000';
+                quizTitleInput.value = 'Lenzerheide Sommer-Erlebnisse Quiz';
+            } else if (brand === 'bikeKingdom') {
+                console.log('Setting Bike Kingdom colors');
+                primaryColorInput.value = '#000000';
+                primaryColorPicker.value = '#000000';
+                accentColorInput.value = '#333333';
+                accentColorPicker.value = '#333333';
+                optionLetterColorInput.value = '#000000';
+                optionLetterColorPicker.value = '#000000';
+                buttonHoverColorInput.value = '#000000';
+                buttonHoverColorPicker.value = '#000000';
+                quizTitleInput.value = 'Bike Kingdom Abenteuer Quiz';
+            }
+            console.log('Updated colors:', {
+                primary: primaryColorInput.value,
+                accent: accentColorInput.value,
+                optionLetter: optionLetterColorInput.value,
+                buttonHover: buttonHoverColorInput.value
+            });
+            updateQuiz();
+        }
+
+        /**
+         * Deaktiviert manuelle Farbänderungen, da Farben durch Markenauswahl gesetzt werden.
+         */
+        function setupColorPickers() {
+            // Keine Listener, da Farben readonly sind
+        }
+
+        /**
+         * Rendert ein einzelnes Fragen-Element im Editor.
+         * @param {object} question - Das Fragen-Objekt zum Rendern.
+         * @param {number} index - Der Index der Frage im Quiz-Daten-Array.
+         */
+        function renderQuestion(question, index) {
+            console.log(`Creating div for question ${index + 1}: ${question.question}`);
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-item';
+            questionDiv.dataset.index = index;
+
+            let optionsHtml = '';
+            question.options.forEach((option, optionIndex) => {
+                optionsHtml += `
+                    <div class="option-item">
+                        <input type="radio" name="answer-${index}" id="answer-${index}-${optionIndex}" value="${optionIndex}" ${question.answer === optionIndex ? 'checked' : ''}>
+                        <label for="answer-${index}-${optionIndex}">
+                            <input type="text" value="${option}" data-option-index="${optionIndex}" placeholder="Antworttext">
+                        </label>
+                        <button type="button" class="remove-option-btn" data-question-index="${index}" data-option-index="${optionIndex}">x</button>
+                    </div>
+                `;
+            });
+            optionsHtml += `<button type="button" class="add-option-btn" data-question-index="${index}">Option hinzufügen</button>`;
+
+            questionDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Frage ${index + 1}:</label>
+                    <textarea data-field="question" placeholder="Fragetext">${question.question}</textarea>
+                </div>
+                <div class="form-group options-group">
+                    <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                    ${optionsHtml}
+                </div>
+                <div class="form-group">
+                    <label>Link 'Mehr erfahren' (URL, optional):</label>
+                    <input type="url" data-field="moreInfo" value="${question.moreInfo || ''}" placeholder="z.B. https://example.com/info">
+                </div>
+                <div class="form-group">
+                    <label>Feedback bei richtiger Antwort:</label>
+                    <textarea data-field="correctFeedback" placeholder="Text bei richtiger Antwort">${question.correctFeedback}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Feedback bei falscher Antwort:</label>
+                    <textarea data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">${question.incorrectFeedback}</textarea>
+                </div>
+                <button type="button" class="remove-question-btn" data-question-index="${index}">Frage entfernen</button>
+            `;
+            questionsList.appendChild(questionDiv);
+            console.log(`Appended question ${index + 1} to questionsList.`);
+
+            // Event-Listener für dynamisch erstellte Elemente hinzufügen
+            questionDiv.querySelectorAll('textarea[data-field], input[type="url"][data-field]').forEach(input => {
+                input.addEventListener('input', updateQuiz);
+            });
+            questionDiv.querySelectorAll('.option-item input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', updateQuiz);
+            });
+            questionDiv.querySelectorAll('.option-item input[type="text"]').forEach(input => {
+                input.addEventListener('input', updateQuiz);
+            });
+            questionDiv.querySelector('.add-option-btn').addEventListener('click', (e) => {
+                addOption(parseInt(e.target.dataset.questionIndex));
+            });
+            questionDiv.querySelectorAll('.remove-option-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    removeOption(parseInt(e.target.dataset.questionIndex), parseInt(e.target.dataset.optionIndex));
+                });
+            });
+            questionDiv.querySelector('.remove-question-btn').addEventListener('click', (e) => {
+                removeQuestion(parseInt(e.target.dataset.questionIndex));
+            });
+        }
+
+        /**
+         * Rendert alle Fragen aus dem `currentQuizData`-Array in den Editor.
+         */
+        function renderAllQuestions() {
+            console.log('renderAllQuestions called. currentQuizData:', currentQuizData);
+            questionsList.innerHTML = '';
+            currentQuizData.forEach((q, i) => renderQuestion(q, i));
+            console.log('questionsList innerHTML after rendering:', questionsList.innerHTML);
+            updateQuiz();
+        }
+
+        /**
+         * Fügt eine neue, leere Frage zu den Quiz-Daten hinzu.
+         */
+        function addQuestion() {
+            currentQuizData.push({
+                question: "Neue Frage",
+                options: ["Option A", "Option B", "Option C", "Option D"],
+                answer: 0,
+                moreInfo: "",
+                correctFeedback: "Das ist richtig!",
+                incorrectFeedback: "Das ist leider falsch."
+            });
+            renderAllQuestions();
+        }
+
+        /**
+         * Entfernt eine Frage aus den Quiz-Daten anhand ihres Index.
+         * @param {number} index - Der Index der zu entfernenden Frage.
+         */
+        function removeQuestion(index) {
+            if (confirm('Sicher, dass du diese Frage entfernen möchtest?')) {
+                currentQuizData.splice(index, 1);
+                renderAllQuestions();
+                showMessage('Frage entfernt!');
+            }
+        }
+
+        /**
+         * Fügt eine neue Option zu einer bestimmten Frage hinzu.
+         * @param {number} questionIndex - Der Index der Frage, zu der die Option hinzugefügt werden soll.
+         */
+        function addOption(questionIndex) {
+            currentQuizData[questionIndex].options.push("Neue Option");
+            renderAllQuestions();
+        }
+
+        /**
+         * Entfernt eine Option von einer bestimmten Frage.
+         * @param {number} questionIndex - Der Index der Frage, von der die Option entfernt werden soll.
+         * @param {number} optionIndex - Der Index der zu entfernenden Option.
+         */
+        function removeOption(questionIndex, optionIndex) {
+            if (currentQuizData[questionIndex].options.length > 1) {
+                currentQuizData[questionIndex].options.splice(optionIndex, 1);
+                if (currentQuizData[questionIndex].answer === optionIndex) {
+                    currentQuizData[questionIndex].answer = 0;
+                } else if (currentQuizData[questionIndex].answer > optionIndex) {
+                    currentQuizData[questionIndex].answer--;
+                }
+                renderAllQuestions();
+                showMessage('Option entfernt!');
+            } else {
+                showMessage('Eine Frage muss mindestens eine Option haben.');
+            }
+        }
+
+        /**
+         * Initialisiert currentQuizData aus den im HTML definierten Fragen.
+         */
+        function initializeQuizDataFromHTML() {
+            currentQuizData = [];
+            questionsList.querySelectorAll('.question-item').forEach((qDiv, qIndex) => {
+                const questionTextarea = qDiv.querySelector('textarea[data-field="question"]');
+                const moreInfoInput = qDiv.querySelector('input[data-field="moreInfo"]');
+                const correctFeedbackTextarea = qDiv.querySelector('textarea[data-field="correctFeedback"]');
+                const incorrectFeedbackTextarea = qDiv.querySelector('textarea[data-field="incorrectFeedback"]');
+
+                const options = [];
+                qDiv.querySelectorAll('.option-item input[type="text"]').forEach(input => {
+                    options.push(input.value);
+                });
+
+                const selectedAnswerRadio = qDiv.querySelector(`input[name="answer-${qIndex}"]:checked`);
+                const answerIndex = selectedAnswerRadio ? parseInt(selectedAnswerRadio.value) : 0;
+
+                currentQuizData.push({
+                    question: questionTextarea.value,
+                    options: options,
+                    answer: answerIndex,
+                    moreInfo: moreInfoInput.value,
+                    correctFeedback: correctFeedbackTextarea.value,
+                    incorrectFeedback: incorrectFeedbackTextarea.value,
+                });
+            });
+            console.log('Initialized currentQuizData from HTML:', currentQuizData);
+        }
+
+        /**
+         * Sammelt alle aktuellen Quiz-Daten aus den Formularfeldern.
+         */
+        function collectQuizData() {
+            const collectedData = [];
+            questionsList.querySelectorAll('.question-item').forEach((qDiv, qIndex) => {
+                const questionTextarea = qDiv.querySelector('textarea[data-field="question"]');
+                const moreInfoInput = qDiv.querySelector('input[data-field="moreInfo"]');
+                const correctFeedbackTextarea = qDiv.querySelector('textarea[data-field="correctFeedback"]');
+                const incorrectFeedbackTextarea = qDiv.querySelector('textarea[data-field="incorrectFeedback"]');
+
+                const options = [];
+                qDiv.querySelectorAll('.option-item input[type="text"]').forEach(input => {
+                    options.push(input.value);
+                });
+
+                const selectedAnswerRadio = qDiv.querySelector(`input[name="answer-${qIndex}"]:checked`);
+                const answerIndex = selectedAnswerRadio ? parseInt(selectedAnswerRadio.value) : 0;
+
+                collectedData.push({
+                    question: questionTextarea.value,
+                    options: options,
+                    answer: answerIndex,
+                    moreInfo: moreInfoInput.value,
+                    correctFeedback: correctFeedbackTextarea.value,
+                    incorrectFeedback: incorrectFeedbackTextarea.value,
+                });
+            });
+            currentQuizData = collectedData;
+            console.log('Collected quiz data:', currentQuizData);
+        }
+
+        /**
+         * Generiert das vollständige Quiz-Konfigurationsobjekt.
+         * @returns {object} Die Quiz-Konfiguration.
+         */
+        function generateConfig() {
+            collectQuizData();
+            const brand = brandSelect.value.toLowerCase();
+            const config = {
+                quizData: currentQuizData,
+                quizTitle: quizTitleInput.value,
+                logoImgSrc: brand === 'lenzerheide' ? 'assets/lenzerheide_logo.png' : 'assets/bike_kingdom_logo.png',
+                textLogoFallbackContent: brand === 'lenzerheide' ? 'Lenzerheide' : 'Bike Kingdom',
+                primaryColor: primaryColorInput.value,
+                accentColor: accentColorInput.value,
+                optionLetterColor: optionLetterColorInput.value,
+                buttonHoverColor: buttonHoverColorInput.value
+            };
+            console.log('Generated config:', config);
+            return config;
+        }
+
+        /**
+         * Generiert die URL für das Quiz-Widget mit der aktuellen Konfiguration.
+         * @param {object} config - Das Quiz-Konfigurationsobjekt.
+         * @returns {string} Die URL des Quiz-Widgets.
+         */
+        function generateQuizUrl(config) {
+            let base64Encoded = '';
+            try {
+                const jsonString = JSON.stringify(config);
+                base64Encoded = btoa(jsonString);
+            } catch (e) {
+                console.error("Fehler beim Kodieren der Quiz-Konfiguration:", e);
+                showMessage("Fehler beim Speichern der Konfiguration. Überprüfen Sie die Daten.");
+                return '';
+            }
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+            const widgetUrl = `${baseUrl}quiz-widget.html`;
+            const finalUrl = `${widgetUrl}?config=${base64Encoded}`;
+            console.log('Generated widget URL:', finalUrl);
+            return finalUrl;
+        }
+
+        /**
+         * Aktualisiert das Quiz-Vorschau-Iframe und den Einbettungscode-Ausgabe.
+         */
+        function updateQuiz() {
+            const config = generateConfig();
+            const quizUrl = generateQuizUrl(config);
+            quizPreview.src = '';
+            setTimeout(() => {
+                quizPreview.src = quizUrl;
+            }, 100);
+            const embedCode = `<iframe src="${quizUrl}" style="width: 100%; height: 650px; border: none; overflow: hidden;" title="${config.quizTitle}"></iframe>`;
+            embedCodeOutput.value = embedCode;
+            shareLinkOutput.textContent = quizUrl;
+        }
+
+        /**
+         * Kopiert den Einbettungscode in die Zwischenablage.
+         */
+        function copyEmbedCode() {
+            embedCodeOutput.select();
+            document.execCommand('copy');
+            showMessage('Einbettungscode kopiert!');
+        }
+
+        /**
+         * Kopiert den direkten Freigabe-Link in die Zwischenablage.
+         */
+        function copyShareLink() {
+            const range = document.createRange();
+            range.selectNode(shareLinkOutput);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            showMessage('Direkter Link kopiert!');
+        }
+
+        // Event-Listener Setup
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded event fired in quiz-editor.html');
+            initializeQuizDataFromHTML();
+            applyPresets(brandSelect.value);
+            renderAllQuestions();
+
+            brandSelect.addEventListener('change', () => {
+                console.log('Brand changed to:', brandSelect.value);
+                applyPresets(brandSelect.value);
+            });
+            quizTitleInput.addEventListener('input', updateQuiz);
+            setupColorPickers();
+            document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+            document.getElementById('copyEmbedCodeBtn').addEventListener('click', copyEmbedCode);
+            document.getElementById('copyShareLinkBtn').addEventListener('click', copyShareLink);
+            document.getElementById('fullscreenPreviewBtn').addEventListener('click', () => {
+                const quizUrl = shareLinkOutput.textContent;
+                window.open(quizUrl, '_blank');
+            });
+        });
+    </script>
+</body>
+</html>

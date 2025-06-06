@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Widget</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face {
+            font-family: 'TheMix Bold';
+            src: url('./assets/fonts/TheMixBold.woff2') format('woff2'),
+                 url('./assets/fonts/TheMixBold.woff') format('woff');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --primary-color: #f2213b;
+            --accent-color: #b30000;
+            --button-hover-color: #a81c2f;
+            --text-color: #ffffff;
+            --thank-you-bg-color: #ffffff;
+            --thank-you-text-color: #666666;
+            --body-background-color: #f0f2f5;
+            --more-info-link-color: #ffd700;
+            --progress-bar-color: #ffffff;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--body-background-color);
+            font-family: 'TheMix Bold', 'Inter', sans-serif;
+            color: var(--text-color);
+            box-sizing: border-box;
+            width: 100%;
+            overflow-y: auto;
+        }
+
+        .quiz-container, .lead-form-page, .thank-you-page {
+            width: 100%;
+            max-width: 400px;
+            height: 500px;
+            aspect-ratio: 4 / 5;
+            background-color: var(--primary-color);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem auto;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .lead-form-page, .thank-you-page {
+            background-color: var(--thank-you-bg-color);
+            color: var(--thank-you-text-color);
+        }
+
+        @media (max-width: 480px) {
+            .quiz-container, .lead-form-page, .thank-you-page {
+                max-width: 90%;
+                height: 450px;
+                padding: 1rem;
+                margin: 0.5rem auto;
+            }
+        }
+
+        .logo-area {
+            margin-bottom: 0.5rem;
+            height: 50px;
+            width: 100%;
+        }
+
+        .logo-area img {
+            max-width: 150px;
+            max-height: 50px;
+            object-fit: contain;
+            border-radius: 0.25rem;
+        }
+
+        .logo-area span {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-color);
+        }
+
+        .quiz-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .quiz-progress {
+            width: 100%;
+            margin-bottom: 0.75rem;
+        }
+
+        .question-counter {
+            font-size: 0.8rem;
+            color: var(--progress-bar-color);
+            margin-bottom: 0.25rem;
+            text-align: right;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--progress-bar-color);
+            transition: width 0.5s ease;
+        }
+
+        .start-page-text, .question-text, .lead-form-page p, .thank-you-page p {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+            max-height: 100px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            width: 100%;
+            max-height: 160px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
+        }
+
+        .option-button {
+            background-color: #ffffff;
+            border: 1px solid #ffffff;
+            color: #000000;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            word-break: break-word;
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .option-button.selected, .option-button.correct-answer {
+            background-color: #28a745;
+            color: #ffffff;
+            border-color: #28a745;
+        }
+
+        .option-button.incorrect-answer {
+            background-color: #dc3545;
+            color: #ffffff;
+            border-color: #dc3545;
+        }
+
+        .option-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .feedback-message {
+            font-size: 0.9rem;
+            font-weight: 600;
+            min-height: 1.5em;
+            line-height: 1.5em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .feedback-message.correct {
+            color: #28a745;
+        }
+
+        .feedback-message.incorrect {
+            color: #dc3545;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .nav-button {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+            max-width: 150px;
+        }
+
+        .nav-button:hover {
+            background-color: var(--button-hover-color);
+            transform: translateY(-1px);
+        }
+
+        .lead-form-page h2, .thank-you-page h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .more-info-link {
+            margin-top: 0.5rem;
+            color: var(--more-info-link-color);
+            text-decoration: underline;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .more-info-link:hover {
+            color: var(--button-hover-color);
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+        import { getFirestore, doc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJFQeFp5JCWO6jRUiICTTkNVulmak19kY",
+            authDomain: "quizmanager-6afce.firebaseapp.com",
+            projectId: "quizmanager-6afce",
+            storageBucket: "quizmanager-6afce.firebasestorage.app",
+            messagingSenderId: "156264147382",
+            appId: "1:156264147382:web:d2461ed98767350e9df917"
+        };
+
+        let app;
+        let db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase initialisiert successfully in widget.");
+        } catch (error) {
+            console.error("Error initializing Firebase in widget:", error);
+        }
+
+        let quizData = null;
+        let currentQuestionIndex = 0;
+        let userScore = 0;
+        let selectedOptionIndex = -1;
+        let quizId = null;
+
+        const startPage = document.getElementById('startPage');
+        const quizContainer = document.getElementById('quizContainer');
+        const startButton = document.getElementById('startButton');
+        const quizPageTitleElement = document.getElementById('quizPageTitle');
+        const questionElement = document.getElementById('question');
+        const optionsContainer = document.getElementById('options');
+        const feedbackMessageElement = document.getElementById('feedbackMessage');
+        const nextButton = document.getElementById('nextButton');
+        const leadFormPage = document.getElementById('leadFormPage');
+        const thankYouPage = document.getElementById('thankYouPage');
+        const moreInfoLink = document.getElementById('moreInfoLink');
+        const leadFormLinkButton = document.getElementById('leadFormLinkButton');
+        const finalThankYouLink = document.getElementById('finalThankYouLink');
+        const questionCounterElement = document.getElementById('questionCounter');
+        const progressBarFillElement = document.getElementById('progressFill');
+
+        function updateCssVariables(config) {
+            document.documentElement.style.setProperty('--primary-color', config.primaryColor);
+            document.documentElement.style.setProperty('--accent-color', config.accentColor);
+            document.documentElement.style.setProperty('--button-hover-color', config.buttonHoverColor);
+            document.documentElement.style.setProperty('--text-color', config.textColor);
+            document.documentElement.style.setProperty('--thank-you-bg-color', config.thankYouBackgroundColor);
+            document.documentElement.style.setProperty('--thank-you-text-color', config.thankYouTextColor);
+            document.documentElement.style.setProperty('--progress-bar-color', config.textColor);
+        }
+
+        async function fetchQuizData(id) {
+            if (!db) {
+                console.error("Firestore DB not available in widget.");
+                return null;
+            }
+            try {
+                const quizDocRef = doc(db, 'quizzes', id);
+                const docSnap = await getDoc(quizDocRef);
+                if (docSnap.exists()) {
+                    console.log("Quiz data fetched from Firestore:", docSnap.data());
+                    return docSnap.data();
+                } else {
+                    console.warn("No such document for quizId:", id);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error fetching quiz data:", error);
+                return null;
+            }
+        }
+
+        async function logQuizView(id) {
+            if (!db) {
+                console.error("Firestore DB not available for logging views.");
+                return;
+            }
+            try {
+                const quizDocRef = doc(db, 'quizzes', id);
+                await updateDoc(quizDocRef, {
+                    views: increment(1)
+                });
+                console.log("Quiz view logged for:", id);
+            } catch (error) {
+                console.error("Error logging quiz view:", error);
+            }
+        }
+
+        function loadQuestion() {
+            feedbackMessageElement.textContent = '';
+            feedbackMessageElement.className = 'feedback-message';
+            optionsContainer.innerHTML = '';
+            nextButton.style.display = 'none';
+            moreInfoLink.style.display = 'none';
+            selectedOptionIndex = -1;
+
+            const question = quizData.questions[currentQuestionIndex];
+            questionElement.textContent = question.question;
+            quizPageTitleElement.textContent = quizData.config.quizTitle;
+
+            questionCounterElement.textContent = `Frage ${currentQuestionIndex + 1}/${quizData.questions.length}`;
+            const progress = ((currentQuestionIndex + 1) / quizData.questions.length) * 100;
+            progressBarFillElement.style.width = `${progress}%`;
+
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span>${String.fromCharCode(65 + index)}: ${option}</span>`;
+                button.addEventListener('click', () => selectOption(index, question.answer, question.correctFeedback, question.incorrectFeedback, question.moreInfo));
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectOption(selectedIndex, correctAnswerIndex, correctFeedback, incorrectFeedback, moreInfoUrl) {
+            if (selectedOptionIndex !== -1) return;
+
+            selectedOptionIndex = selectedIndex;
+
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            buttons.forEach((button) => {
+                button.disabled = true;
+            });
+
+            if (selectedIndex === correctAnswerIndex) {
+                feedbackMessageElement.textContent = correctFeedback || 'Richtig!';
+                feedbackMessageElement.className = 'feedback-message correct';
+                userScore++;
+            } else {
+                feedbackMessageElement.textContent = incorrectFeedback || 'Leider falsch.';
+                feedbackMessageElement.className = 'feedback-message incorrect';
+            }
+
+            buttons.forEach((button, index) => {
+                if (index === selectedIndex) {
+                    button.classList.add(selectedIndex === correctAnswerIndex ? 'correct-answer' : 'incorrect-answer');
+                }
+                if (index === correctAnswerIndex) {
+                    button.classList.add('correct-answer');
+                    if (selectedIndex === correctAnswerIndex) {
+                        button.classList.remove('selected');
+                    }
+                }
+            });
+
+            if (moreInfoUrl) {
+                moreInfoLink.href = moreInfoUrl;
+                moreInfoLink.style.display = 'block';
+            }
+
+            nextButton.textContent = (currentQuestionIndex < quizData.questions.length - 1) ? 'Nächste Frage' : 'Ergebnisse anzeigen';
+            nextButton.style.display = 'block';
+        }
+
+        function showNextQuestionOrResult() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.questions.length) {
+                loadQuestion();
+            } else {
+                showFinalScreen();
+            }
+        }
+
+        function showFinalScreen() {
+            quizContainer.classList.add('hidden');
+            if (quizData.config.leadFormEnabled && quizData.config.finalLeadLink) {
+                showLeadFormPage();
+            } else {
+                showThankYouPage();
+            }
+        }
+
+        function showLeadFormPage() {
+            leadFormPage.classList.remove('hidden');
+            thankYouPage.classList.add('hidden');
+
+            leadFormPage.querySelector('h2').textContent = quizData.config.leadFormTitle || "Nimm am Gewinnspiel teil!";
+            leadFormPage.querySelector('p').textContent = quizData.config.leadFormDescription || "Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern. Du wirst zu unserem Anmeldeformular weitergeleitet.";
+
+            if (quizData.config.finalLeadLink) {
+                leadFormLinkButton.href = quizData.config.finalLeadLink;
+                leadFormLinkButton.textContent = "Zum Anmeldeformular";
+                leadFormLinkButton.classList.remove('hidden');
+            } else {
+                leadFormLinkButton.classList.add('hidden');
+            }
+
+            updateLogoArea('logoAreaLead', quizData.config);
+        }
+
+        function showThankYouPage() {
+            thankYouPage.classList.remove('hidden');
+            leadFormPage.classList.add('hidden');
+
+            thankYouPage.querySelector('h2').textContent = quizData.config.thankYouTitle || "Vielen Dank für deine Teilnahme!";
+            thankYouPage.querySelector('p').textContent = quizData.config.leadFormDescription || "Möchtest du mehr erfahren? Dann melde dich hier an:";
+
+            if (quizData.config.finalLeadLink) {
+                finalThankYouLink.href = quizData.config.finalLeadLink;
+                finalThankYouLink.textContent = "Hier geht's zur Anmeldung!";
+                finalThankYouLink.classList.remove('hidden');
+            } else {
+                finalThankYouLink.classList.add('hidden');
+            }
+            updateLogoArea('logoAreaThankYou', quizData.config);
+        }
+
+        function updateLogoArea(elementId, config) {
+            const targetElement = document.getElementById(elementId);
+            if (!targetElement) return;
+
+            targetElement.innerHTML = '';
+            const logoImgSrc = config.logoImgSrc;
+            const textLogoFallbackContent = config.textLogoFallbackContent;
+            const quizTitle = config.quizTitle;
+
+            if (logoImgSrc) {
+                const img = document.createElement('img');
+                img.src = logoImgSrc;
+                img.alt = textLogoFallbackContent || quizTitle || 'Brand Logo';
+                img.onerror = () => {
+                    targetElement.innerHTML = `<span>${textLogoFallbackContent || quizTitle || ''}</span>`;
+                };
+                targetElement.appendChild(img);
+            } else if (textLogoFallbackContent) {
+                targetElement.innerHTML = `<span>${textLogoFallbackContent}</span>`;
+            } else {
+                targetElement.innerHTML = `<span>${quizTitle || 'Quiz'}</span>`;
+            }
+        }
+
+        async function initializeQuiz() {
+            const urlParams = new URLSearchParams(window.location.search);
+            quizId = urlParams.get('quiz_id');
+
+            if (quizId && db) {
+                quizData = await fetchQuizData(quizId);
+                if (quizData) {
+                    updateCssVariables(quizData.config);
+                    updateLogoArea('logoArea', quizData.config);
+                    updateLogoArea('logoAreaQuiz', quizData.config);
+                    updateLogoArea('logoAreaLead', quizData.config);
+                    updateLogoArea('logoAreaThankYou', quizData.config);
+
+                    document.getElementById('mainQuizTitle').textContent = quizData.config.quizTitle;
+                    quizPageTitleElement.textContent = quizData.config.quizTitle;
+
+                    await logQuizView(quizId);
+
+                    startButton.addEventListener('click', () => {
+                        startPage.classList.add('hidden');
+                        quizContainer.classList.remove('hidden');
+                        loadQuestion();
+                    });
+                    nextButton.addEventListener('click', showNextQuestionOrResult);
+                } else {
+                    quizContainer.innerHTML = '<p class="text-red-500">Quiz konnte nicht geladen werden oder existiert nicht.</p>';
+                    startPage.classList.add('hidden');
+                }
+            } else {
+                quizContainer.innerHTML = '<p class="text-red-500">Keine Quiz-ID angegeben oder Firebase ist nicht initialisiert.</p>';
+                startPage.classList.add('hidden');
+                console.error("No quiz_id provided in URL or Firebase not initialized.");
+            }
+        }
+
+        initializeQuiz();
+    </script>
+</head>
+<body>
+    <div id="startPage" class="quiz-container">
+        <div id="logoArea" class="logo-area"></div>
+        <h1 id="mainQuizTitle" class="quiz-title">Lade Quiz...</h1>
+        <p class="start-page-text">Klicken Sie auf Start, um das Quiz zu beginnen.</p>
+        <button id="startButton" class="nav-button">Start</button>
+    </div>
+
+    <div id="quizContainer" class="quiz-container hidden">
+        <div id="logoAreaQuiz" class="logo-area"></div>
+        <h1 id="quizPageTitle" class="quiz-title"></h1>
+        <div class="quiz-progress">
+            <span id="questionCounter" class="question-counter"></span>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+        </div>
+        <h2 id="question" class="question-text"></h2>
+        <div id="options" class="options-list"></div>
+        <div id="feedbackMessage" class="feedback-message"></div>
+        <a id="moreInfoLink" class="more-info-link" href="#" target="_blank" style="display: none;">Mehr erfahren</a>
+        <div class="navigation-buttons">
+            <button id="nextButton" class="nav-button hidden">Weiter</button>
+        </div>
+    </div>
+
+    <div id="leadFormPage" class="lead-form-page hidden">
+        <div id="logoAreaLead" class="logo-area"></div>
+        <h2 class="text-xl font-bold mb-2"></h2>
+        <p class="mb-4"></p>
+        <a id="leadFormLinkButton" class="nav-button" href="#" target="_blank">Zum Anmeldeformular</a>
+    </div>
+
+    <div id="thankYouPage" class="thank-you-page hidden">
+        <div id="logoAreaThankYou" class="logo-area"></div>
+        <h2 class="text-xl font-bold mb-2"></h2>
+        <p class="mb-4"></p>
+        <a id="finalThankYouLink" class="nav-button" href="#" target="_blank">Hier geht's weiter!</a>
+    </div>
+</body>
+</html>

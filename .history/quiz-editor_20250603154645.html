@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Konfigurator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 6px;
+            background-color: #fdfdfd;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"],
+        input[type="url"],
+        input[type="color"],
+        textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        .color-input-wrapper input[type="color"] {
+            width: 50px;
+            height: 38px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .color-input-wrapper input[type="text"] {
+            flex-grow: 1;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.add-question-btn {
+            background-color: #27ae60;
+        }
+        button.add-question-btn:hover {
+            background-color: #229954;
+        }
+        button.remove-question-btn, button.remove-option-btn {
+            background-color: #e74c3c;
+            margin-left: 10px;
+        }
+        button.remove-question-btn:hover, button.remove-option-btn:hover {
+            background-color: #c0392b;
+        }
+        .question-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .options-group {
+            margin-top: 10px;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .option-item input[type="radio"] {
+            margin-right: 10px;
+        }
+        .output-area {
+            background-color: #e8f0f7;
+            border: 1px solid #c2dbeb;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .output-area textarea {
+            width: 100%;
+            height: 120px;
+            background-color: #eef5fb;
+            border: 1px solid #cce1f5;
+            padding: 10px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .preview-area {
+            margin-top: 30px;
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .preview-area iframe {
+            width: 100%;
+            height: 650px; /* Standardhöhe für Vorschau */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .share-link {
+            font-size: 0.9em;
+            margin-top: 10px;
+            word-break: break-all;
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Quiz Konfigurator</h1>
+        <p>Erstelle und passe dein interaktives Quiz an. Alle Änderungen werden sofort in der Vorschau angezeigt.</p>
+
+        <div class="section">
+            <h2>Allgemeine Einstellungen</h2>
+            <div class="form-group">
+                <label for="quizTitle">Quiz Titel:</label>
+                <input type="text" id="quizTitle" value="Lenzerheide Sommer-Erlebnisse Quiz">
+            </div>
+            <div class="form-group">
+                <label for="logoImgSrc">Logo Bild URL (optional):</label>
+                <input type="url" id="logoImgSrc" placeholder="z.B. https://example.com/logo.png">
+            </div>
+            <div class="form-group">
+                <label for="textLogoFallbackContent">Text-Logo (falls Bild nicht geladen wird):</label>
+                <input type="text" id="textLogoFallbackContent" value="Lenzerheide">
+            </div>
+            <div class="form-group">
+                <label for="primaryColor">Primärfarbe (z.B. Quiz-Hintergrund):</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="primaryColorPicker" value="#FF0000">
+                    <input type="text" id="primaryColor" value="#FF0000">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="accentColor">Akzentfarbe (z.B. Button Textfarbe):</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="accentColorPicker" value="#B30000">
+                    <input type="text" id="accentColor" value="#B30000">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="optionLetterColor">Farbe Optionsbuchstabe (A., B., C.):</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="optionLetterColorPicker" value="#FF0000">
+                    <input type="text" id="optionLetterColor" value="#FF0000">
+                </div>
+            </div>
+             <div class="form-group">
+                <label for="buttonHoverColor">Button Hover Textfarbe:</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="buttonHoverColorPicker" value="#FF0000">
+                    <input type="text" id="buttonHoverColor" value="#FF0000">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Quiz Fragen</h2>
+            <div id="questions-list">
+                </div>
+            <button class="add-question-btn" onclick="addQuestion()">Frage hinzufügen</button>
+        </div>
+
+        <div class="section">
+            <h2>Einbettungscode</h2>
+            <p>Kopiere diesen Code und füge ihn in deine Landingpage ein:</p>
+            <div class="output-area">
+                <textarea id="embed-code-output" readonly></textarea>
+                <button onclick="copyEmbedCode()">Code kopieren</button>
+            </div>
+            <p>Direkter Link zum Teilen des Quiz:</p>
+            <div class="output-area">
+                 <p class="share-link" id="share-link-output"></p>
+                 <button onclick="copyShareLink()">Link kopieren</button>
+            </div>
+        </div>
+
+        <div class="preview-area">
+            <h2>Vorschau</h2>
+            <iframe id="quiz-preview" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        const defaultQuizData = [
+            {
+                question: "Welches Maskottchen sorgt bei Kindern in Lenzerheide für strahlende Augen?",
+                options: ["Pumuckl", "Globi", "Paddington Bär", "Pikachu"],
+                answer: 1,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Familienerlebnisse/Globi-in-Lenzerheide",
+                correctFeedback: "Genau richtig! Globi ist der Star bei den Kindern in Lenzerheide und hat sogar einen eigenen Wanderweg.",
+                incorrectFeedback: "Das war leider nicht die richtige Antwort. Globi ist in Lenzerheide bei den Kindern besonders beliebt!"
+            },
+            {
+                question: "Welches Event verwandelt Lenzerheide im Juni 2025 in ein Paradies für Oldtimer-Fans?",
+                options: ["Heidsee Classics", "Lenzerheide Motor Classics", "Retro Race Days", "Vintage Speed Festival"],
+                answer: 1,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Aktuell/Veranstaltungskalender/12.Lenzerheide-Motor-Classics-2025_ed_14297208",
+                correctFeedback: "Exzellent! Die Lenzerheide Motor Classics sind ein Muss für alle Fans von klassischen Fahrzeugen.",
+                incorrectFeedback: "Nicht ganz. Es sind die berühmten Lenzerheide Motor Classics, die die Herzen von Oldtimer-Fans höher schlagen lassen."
+            },
+            {
+                question: "Wie viele Kilometer umfasst der bekannte Radmarathon „Alpen Challenge“?",
+                options: ["50 km oder 100 km", "75 km oder 150 km", "115 km oder 189 km", "200 km oder 250 km"],
+                answer: 2,
+                moreInfo: "https://www.alpenchallengelenzerheide.ch/",
+                correctFeedback: "Stimmt genau! Die Alpen Challenge bietet diese anspruchsvollen Distanzen für ambitionierte Radfahrer.",
+                incorrectFeedback: "Knapp daneben. Die richtigen Distanzen der Alpen Challenge sind 115 km oder 189 km. Beides echte Herausforderungen!"
+            },
+            {
+                question: "Was ist der Heidsee in Lenzerheide idealerweise im Sommer?",
+                options: ["Eisbahn", "Badesee und Wassersportplatz", "Fischzuchtanlage", "Skisprungschanze"],
+                answer: 1,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Weitere-Sommeraktivitaeten",
+                correctFeedback: "Absolut richtig! Der Heidsee ist im Sommer ein Paradies zum Baden, Planschen und für diverse Wassersportarten.",
+                incorrectFeedback: "Leider falsch. Im Sommer verwandelt sich der Heidsee in einen beliebten Badesee und Wassersportplatz."
+            },
+            {
+                question: "Wie viele Male fand die Heidsee Olympiade bereits statt (Stand Juli 2025)?",
+                options: ["10 Mal", "20 Mal", "47 Mal", "50 Mal"],
+                answer: 2,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Aktuell/Veranstaltungskalender/47.Heidsee-Olympiade_ed_18603933",
+                correctFeedback: "Korrekt! Die 47. Heidsee Olympiade ist für Juli 2025 geplant und verspricht wieder viel Spass.",
+                incorrectFeedback: "Das stimmt nicht ganz. Die 47. Ausgabe der traditionellen Heidsee Olympiade ist für Juli 2025 angesetzt."
+            },
+            {
+                question: "Welches Highlight bietet der Zauberwald Lenzerheide jedes Jahr im Dezember?",
+                options: ["Geisterbahn", "Lichtinstallationen und Weihnachtsmarkt", "Hochseilgarten", "Open-Air Kino"],
+                answer: 1,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Top-Events/Kultur-und-Musik/Zauberwald",
+                correctFeedback: "Genau! Der Zauberwald verzaubert jedes Jahr im Dezember mit einzigartigen Lichtinstallationen und einem stimmungsvollen Weihnachtsmarkt.",
+                incorrectFeedback: "Nicht ganz. Der Zauberwald ist berühmt für seine wunderschönen Lichtinstallationen und den Weihnachtsmarkt in winterlicher Atmosphäre."
+            },
+            {
+                question: "Wie lange dauert der beliebte Globi-Kindertag in Lenzerheide jeweils?",
+                options: ["1 Stunde", "3 Stunden", "Ganztägiges Event", "Nur eine halbe Stunde"],
+                answer: 2,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Aktuell/Veranstaltungskalender/Globi-Kindertag_ed_16363847",
+                correctFeedback: "Richtig! Der Globi Kindertag ist ein ganztägiges Event, das den Kindern viel Zeit für Spass und Abenteuer mit Globi bietet.",
+                incorrectFeedback: "Das ist nicht die richtige Dauer. Der Globi Kindertag ist als ganztägiges Event konzipiert, um den Kleinen ein unvergessliches Erlebnis zu bieten."
+            },
+            {
+                question: "Welche Sportart kannst du definitiv NICHT im Sommer am Heidsee ausüben?",
+                options: ["Stand-Up-Paddling", "Schwimmen", "Skispringen", "Pedalofahren"],
+                answer: 2,
+                moreInfo: "https://arosalenzerheide.swiss/de/Lenzerheide/Sommer/Weitere-Sommeraktivitaeten",
+                correctFeedback: "Perfekt! Skispringen ist eine Wintersportart und im Sommer am Heidsee definitiv nicht möglich. Dafür gibt es viele andere tolle Wassersportarten!",
+                incorrectFeedback: "Leider falsch. Während man vieles am Heidsee machen kann, gehört Skispringen nicht zu den Sommeraktivitäten. Das ist eher was für den Winter!"
+            }
+        ];
+
+        const questionsList = document.getElementById('questions-list');
+        const quizPreview = document.getElementById('quiz-preview');
+        const embedCodeOutput = document.getElementById('embed-code-output');
+        const shareLinkOutput = document.getElementById('share-link-output');
+
+        const quizTitleInput = document.getElementById('quizTitle');
+        const logoImgSrcInput = document.getElementById('logoImgSrc');
+        const textLogoFallbackContentInput = document.getElementById('textLogoFallbackContent');
+        const primaryColorPicker = document.getElementById('primaryColorPicker');
+        const primaryColorInput = document.getElementById('primaryColor');
+        const accentColorPicker = document.getElementById('accentColorPicker');
+        const accentColorInput = document.getElementById('accentColor');
+        const optionLetterColorPicker = document.getElementById('optionLetterColorPicker');
+        const optionLetterColorInput = document.getElementById('optionLetterColor');
+        const buttonHoverColorPicker = document.getElementById('buttonHoverColorPicker');
+        const buttonHoverColorInput = document.getElementById('buttonHoverColor');
+
+        let currentQuizData = JSON.parse(JSON.stringify(defaultQuizData)); // Tiefe Kopie
+
+        // Initialisiere Farbpicker und Textfelder
+        function setupColorPickers() {
+            const colorInputs = [
+                { picker: primaryColorPicker, text: primaryColorInput },
+                { picker: accentColorPicker, text: accentColorInput },
+                { picker: optionLetterColorPicker, text: optionLetterColorInput },
+                { picker: buttonHoverColorPicker, text: buttonHoverColorInput }
+            ];
+
+            colorInputs.forEach(({ picker, text }) => {
+                picker.addEventListener('input', () => text.value = picker.value.toUpperCase());
+                text.addEventListener('input', () => picker.value = text.value);
+            });
+        }
+
+        // Frage rendern
+        function renderQuestion(question, index) {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-item';
+            questionDiv.dataset.index = index;
+
+            let optionsHtml = '';
+            question.options.forEach((option, optionIndex) => {
+                optionsHtml += `
+                    <div class="option-item">
+                        <input type="radio" name="answer-${index}" id="answer-${index}-${optionIndex}" value="${optionIndex}" ${question.answer === optionIndex ? 'checked' : ''} onchange="updateQuiz()">
+                        <label for="answer-${index}-${optionIndex}">
+                            <input type="text" value="${option}" oninput="updateQuiz()" data-option-index="${optionIndex}" placeholder="Antworttext">
+                        </label>
+                        <button class="remove-option-btn" onclick="removeOption(${index}, ${optionIndex})">x</button>
+                    </div>
+                `;
+            });
+            optionsHtml += `<button onclick="addOption(${index})">Option hinzufügen</button>`;
+
+
+            questionDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Frage ${index + 1}:</label>
+                    <textarea oninput="updateQuiz()" data-field="question" placeholder="Fragetext">${question.question}</textarea>
+                </div>
+                <div class="form-group options-group">
+                    <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                    ${optionsHtml}
+                </div>
+                <div class="form-group">
+                    <label>Link 'Mehr erfahren' (URL, optional):</label>
+                    <input type="url" oninput="updateQuiz()" data-field="moreInfo" value="${question.moreInfo || ''}" placeholder="z.B. https://example.com/info">
+                </div>
+                <div class="form-group">
+                    <label>Feedback bei richtiger Antwort:</label>
+                    <textarea oninput="updateQuiz()" data-field="correctFeedback" placeholder="Text bei richtiger Antwort">${question.correctFeedback}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Feedback bei falscher Antwort:</label>
+                    <textarea oninput="updateQuiz()" data-field="incorrectFeedback" placeholder="Text bei falscher Antwort">${question.incorrectFeedback}</textarea>
+                </div>
+                <button class="remove-question-btn" onclick="removeQuestion(${index})">Frage entfernen</button>
+            `;
+            questionsList.appendChild(questionDiv);
+        }
+
+        // Alle Fragen rendern
+        function renderAllQuestions() {
+            questionsList.innerHTML = '';
+            currentQuizData.forEach((q, i) => renderQuestion(q, i));
+            updateQuiz();
+        }
+
+        // Neue Frage hinzufügen
+        function addQuestion() {
+            currentQuizData.push({
+                question: "Neue Frage",
+                options: ["Option A", "Option B", "Option C", "Option D"],
+                answer: 0,
+                moreInfo: "",
+                correctFeedback: "Das ist richtig!",
+                incorrectFeedback: "Das ist leider falsch."
+            });
+            renderAllQuestions();
+        }
+
+        // Frage entfernen
+        function removeQuestion(index) {
+            if (confirm('Sicher, dass du diese Frage entfernen möchtest?')) {
+                currentQuizData.splice(index, 1);
+                renderAllQuestions();
+            }
+        }
+
+        // Option hinzufügen
+        function addOption(questionIndex) {
+            currentQuizData[questionIndex].options.push("Neue Option");
+            renderAllQuestions(); // Render all questions to update indices and radio buttons correctly
+        }
+
+        // Option entfernen
+        function removeOption(questionIndex, optionIndex) {
+            if (currentQuizData[questionIndex].options.length > 1) {
+                currentQuizData[questionIndex].options.splice(optionIndex, 1);
+                // Wenn die gelöschte Option die richtige Antwort war, Standard auf 0 setzen
+                if (currentQuizData[questionIndex].answer === optionIndex) {
+                    currentQuizData[questionIndex].answer = 0;
+                } else if (currentQuizData[questionIndex].answer > optionIndex) {
+                    // Wenn die richtige Antwort nach der gelöschten Option war, Index anpassen
+                    currentQuizData[questionIndex].answer--;
+                }
+                renderAllQuestions();
+            } else {
+                alert('Eine Frage muss mindestens eine Option haben.');
+            }
+        }
+
+        // Quiz-Daten aus dem Formular sammeln und aktualisieren
+        function collectQuizData() {
+            const collectedData = [];
+            questionsList.querySelectorAll('.question-item').forEach((qDiv, qIndex) => {
+                const questionTextarea = qDiv.querySelector('textarea[data-field="question"]');
+                const moreInfoInput = qDiv.querySelector('input[data-field="moreInfo"]');
+                const correctFeedbackTextarea = qDiv.querySelector('textarea[data-field="correctFeedback"]');
+                const incorrectFeedbackTextarea = qDiv.querySelector('textarea[data-field="incorrectFeedback"]');
+
+                const options = [];
+                qDiv.querySelectorAll('.option-item input[type="text"]').forEach(input => {
+                    options.push(input.value);
+                });
+
+                const selectedAnswerRadio = qDiv.querySelector(`input[name="answer-${qDiv.dataset.index}"]:checked`);
+                const answerIndex = selectedAnswerRadio ? parseInt(selectedAnswerRadio.value) : 0; // Default to 0 if no answer is selected
+
+                collectedData.push({
+                    question: questionTextarea.value,
+                    options: options,
+                    answer: answerIndex,
+                    moreInfo: moreInfoInput.value,
+                    correctFeedback: correctFeedbackTextarea.value,
+                    incorrectFeedback: incorrectFeedbackTextarea.value,
+                });
+            });
+            currentQuizData = collectedData;
+        }
+
+        // Generiere die vollständige Quiz-Konfiguration
+        function generateConfig() {
+            collectQuizData(); // Sammle die neuesten Daten
+            const config = {
+                quizData: currentQuizData,
+                quizTitle: quizTitleInput.value,
+                logoImgSrc: logoImgSrcInput.value,
+                textLogoFallbackContent: textLogoFallbackContentInput.value,
+                primaryColor: primaryColorInput.value,
+                accentColor: accentColorInput.value,
+                optionLetterColor: optionLetterColorInput.value,
+                buttonHoverColor: buttonHoverColorInput.value
+            };
+            return config;
+        }
+
+        // URL für das Quiz-Widget generieren
+        function generateQuizUrl(config) {
+            const jsonString = JSON.stringify(config);
+            const base64Encoded = btoa(jsonString); // Base64 kodieren
+            // Annahme: quiz-widget.html liegt im gleichen Verzeichnis wie quiz-editor.html
+            const widgetUrl = window.location.href.replace('quiz-editor.html', 'quiz-widget.html');
+            return `${widgetUrl}?config=${base64Encoded}`;
+        }
+
+        // Vorschau und Code aktualisieren
+        function updateQuiz() {
+            const config = generateConfig();
+            const quizUrl = generateQuizUrl(config);
+
+            quizPreview.src = quizUrl;
+
+            const currentOrigin = window.location.origin; // z.B. https://yourdomain.com
+            const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1); // z.B. /quizzes/
+            const fullQuizWidgetUrl = `${currentOrigin}${currentPath}quiz-widget.html`;
+
+            const embedCode = `<iframe src="${quizUrl}" style="width: 100%; height: 650px; border: none; overflow: hidden;" title="${config.quizTitle}"></iframe>`;
+            embedCodeOutput.value = embedCode;
+
+            shareLinkOutput.textContent = quizUrl; // Direkter Link für Teams etc.
+        }
+
+        // Event Listener für Änderungen in den allgemeinen Einstellungen
+        quizTitleInput.addEventListener('input', updateQuiz);
+        logoImgSrcInput.addEventListener('input', updateQuiz);
+        textLogoFallbackContentInput.addEventListener('input', updateQuiz);
+        primaryColorPicker.addEventListener('input', updateQuiz);
+        primaryColorInput.addEventListener('input', updateQuiz);
+        accentColorPicker.addEventListener('input', updateQuiz);
+        accentColorInput.addEventListener('input', updateQuiz);
+        optionLetterColorPicker.addEventListener('input', updateQuiz);
+        optionLetterColorInput.addEventListener('input', updateQuiz);
+        buttonHoverColorPicker.addEventListener('input', updateQuiz);
+        buttonHoverColorInput.addEventListener('input', updateQuiz);
+
+
+        function copyEmbedCode() {
+            embedCodeOutput.select();
+            document.execCommand('copy');
+            alert('Einbettungscode kopiert!');
+        }
+
+        function copyShareLink() {
+            const range = document.createRange();
+            range.selectNode(shareLinkOutput);
+            window.getSelection().removeAllRanges(); // Clear current selection
+            window.getSelection().addRange(range); // Select the text
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges(); // Clear selection
+            alert('Direkter Link kopiert!');
+        }
+
+
+        // Initialisierung
+        setupColorPickers();
+        renderAllQuestions(); // Render questions based on defaultQuizData initially
+        updateQuiz(); // Generate initial preview and code
+    </script>
+
+</body>
+</html>

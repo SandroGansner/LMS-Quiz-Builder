@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Konfigurator & Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 6px;
+            background-color: #fdfdfd;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="color"],
+        .form-group input[type="url"],
+        .form-group textarea,
+        .form-group select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .form-group textarea {
+            resize: vertical;
+        }
+        .form-group input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .quiz-question {
+            border: 1px solid #d0d0d0;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        .quiz-question h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #34495e;
+        }
+        .options-group {
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .option-item input[type="text"] {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .option-item input[type="radio"] {
+            margin-right: 10px;
+        }
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button.secondary {
+            background-color: #6c757d;
+        }
+        .button.secondary:hover {
+            background-color: #5a6268;
+        }
+        .button.danger {
+            background-color: #dc3545;
+        }
+        .button.danger:hover {
+            background-color: #c82333;
+        }
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .preview-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        #quizPreview {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .quiz-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #fafafa;
+        }
+        .quiz-list-item:hover {
+            background-color: #f0f0f0;
+        }
+        .quiz-list-item button {
+            margin-left: 10px;
+            padding: 5px 10px;
+        }
+        #sheetSetupContainer {
+            background-color: #ffe0b2;
+            border: 1px solid #ffcc80;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        #sheetSetupContainer p {
+            margin-bottom: 15px;
+        }
+        #sheetSetupContainer input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ff9800;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Konfigurator & Manager</h1>
+        <p>Erstelle, bearbeite und verwalte deine interaktiven Quizze.
+Alle Änderungen werden im Google Sheet gespeichert.</p>
+
+        <div id="messageContainer" class="message" style="display: none;"></div>
+
+        <div id="sheetSetupContainer" class="section">
+            <h2>Google Sheet Verbindung</h2>
+            <p>Um Quizze zu speichern und zu laden, muss eine Verbindung zu einem Google Sheet hergestellt werden.</p>
+            <div class="form-group">
+                <label for="existingSheetIdInput">ID eines bestehenden Google Sheets verwenden (optional):</label>
+                <input type="text" id="existingSheetIdInput" placeholder="Hier die ID deines Google Sheets einfügen (aus der URL)">
+                <small>Finde die ID in der URL deines Sheets: https://docs.google.com/spreadsheets/d/<b>DEINE_ID_HIER</b>/edit</small>
+            </div>
+            <div class="button-group">
+                <button id="setupSheetBtn" class="button">Google Sheet einrichten</button>
+            </div>
+            <p id="sheetSetupStatus" style="font-weight: bold; margin-top: 15px;"></p>
+        </div>
+
+        <div id="quizManagerSection" class="section" style="display: none;">
+            <h2>Gespeicherte Quizze</h2>
+            <div id="quizList">
+                <p>Lade Quizze, um sie hier anzuzeigen...</p>
+            </div>
+            <div class="button-group">
+       <button id="loadQuizzesBtn" class="button secondary">Quizze laden</button>
+                <button id="createNewQuizBtn" class="button">Neues Quiz erstellen</button>
+            </div>
+            <p id="currentQuizIdDisplay" style="font-weight: bold; margin-top: 15px;">Aktuelles Quiz: <span id="currentQuizId"></span></p>
+        </div>
+
+
+        <div id="quizEditorSection" class="section" style="display: none;">
+            <h2>Quiz Konfigurator</h2>
+            <div class="form-group">
+                <label for="quizTitle">Quiz Titel:</label>
+                <input type="text" id="quizTitle" value="Neues Quiz">
+            </div>
+            <div class="form-group">
+                <label for="brandSelect">Marke auswählen:</label>
+                <select id="brandSelect">
+                    <option value="lenzerheide" data-logo="/assets/lenzerheide_logo.png" data-text-logo="Lenzerheide">Lenzerheide</option>
+                    <option value="bikekingdom" data-logo="/assets/bike_kingdom_logo.png" data-text-logo="Bike Kingdom">Bike Kingdom</option>
+    </select>
+            </div>
+            <div class="form-group">
+                <label for="logoImgSrc">Logo Bild URL (optional, wird bei Markenwahl überschrieben):</label>
+                <input type="url" id="logoImgSrc" placeholder="z.B. https://example.com/logo.png">
+            </div>
+            <div class="form-group">
+                <label for="textLogoFallbackContent">Text Logo Fallback (wenn kein Bild):</label>
+                <input type="text" id="textLogoFallbackContent" value="Mein Quiz">
+            </div>
+            <div class="form-group">
+        <label for="primaryColor">Primärfarbe (z.B. Quiz-Hintergrund):</label>
+                <input type="color" id="primaryColor" value="#f2213b">
+            </div>
+            <div class="form-group">
+                <label for="accentColor">Akzentfarbe (z.B. Button Textfarbe):</label>
+                <input type="color" id="accentColor" value="#ffffff">
+      </div>
+            <div class="form-group">
+                <label for="optionLetterColor">Farbe Optionsbuchstabe (A., B., C.):</label>
+                <input type="color" id="optionLetterColor" value="#f2213b">
+            </div>
+            <div class="form-group">
+                <label for="buttonHoverColor">Button Hover Farbe:</label>
+                <input type="color" id="buttonHoverColor" value="#a81c2f">
+            </div>
+            <div class="form-group">
+                <label for="textColor">Textfarbe im Quiz:</label>
+                <input type="color" id="textColor" value="#333333">
+            </div>
+   <div class="form-group">
+                <label for="finalLeadLink">Finaler Link nach Lead-Formular (URL, optional):</label>
+                <input type="url" id="finalLeadLink" placeholder="z.B. https://www.example.com/verlosung">
+            </div>
+
+            <h2>Lead-Formular Einstellungen</h2>
+            <div class="form-group">
+                <input type="checkbox" id="leadFormEnabled">
+                <label for="leadFormEnabled" style="display: inline;">Lead-Formular am Ende des Quiz anzeigen</label>
+            </div>
+        <div id="leadFormDetails" style="display: none;">
+                <div class="form-group">
+                    <label for="leadFormTitle">Lead-Formular Titel:</label>
+                    <input type="text" id="leadFormTitle" value="Nimm am Gewinnspiel teil!">
+                </div>
+            <div class="form-group">
+                    <label for="leadFormDescription">Lead-Formular Beschreibung:</label>
+                    <textarea id="leadFormDescription">Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern.</textarea>
+                </div>
+                <div class="form-group">
+        <label for="leadFormSuccessMessage">Erfolgsnachricht nach Lead-Formular:</label>
+                    <input type="text" id="leadFormSuccessMessage" value="Daten erfolgreich gesendet!">
+                </div>
+                <h3>Lead-Formular Felder</h3>
+                <div id="leadFormFieldsContainer">
+          </div>
+                <button type="button" id="addLeadFormFieldBtn" class="button secondary">Feld hinzufügen</button>
+            </div>
+
+            <h2>Danke-Seite Einstellungen</h2>
+            <div class="form-group">
+                <label for="thankYouTitle">Danke-Seite Titel:</label>
+             <input type="text" id="thankYouTitle" value="Vielen Dank für deine Teilnahme!">
+            </div>
+            <div class="form-group">
+                <label for="thankYouDescription">Danke-Seite Beschreibung:</label>
+                <textarea id="thankYouDescription">Möchtest du mehr erfahren? Dann melde dich hier an:</textarea>
+            </div>
+            <div class="form-group">
+                <label for="thankYouBackgroundColor">Danke-Seite Hintergrundfarbe:</label>
+                <input type="color" id="thankYouBackgroundColor" value="#ffffff">
+            </div>
+            <div class="form-group">
+         <label for="thankYouTextColor">Danke-Seite Textfarbe:</label>
+                <input type="color" id="thankYouTextColor" value="#666666">
+            </div>
+
+
+            <h2>Quiz Fragen</h2>
+            <div id="questionsContainer">
+                </div>
+            <button type="button" id="addQuestionBtn" class="button">Frage hinzufügen</button>
+
+  <div class="button-group" style="margin-top: 30px;">
+                <button type="button" id="saveQuizBtn" class="button">Quiz speichern</button>
+                <button type="button" id="deleteQuizBtn" class="button danger" style="display: none;">Quiz löschen</button>
+                <button type="button" id="resetEditorBtn" class="button secondary">Editor zurücksetzen</button>
+            </div>
+
+           <h2 style="margin-top: 40px;">Einbettungscode</h2>
+            <div class="form-group">
+                <label for="embedCode">Kopiere diesen Code und füge ihn in deine Landingpage ein:</label>
+                <textarea id="embedCode" rows="4" readonly></textarea>
+                <button type="button" id="copyEmbedCodeBtn" class="button secondary">Code kopieren</button>
+            </div>
+      <div class="form-group">
+                <label for="directLink">Direkter Link zum Teilen des Quiz:</label>
+                <input type="url" id="directLink" readonly>
+                <button type="button" id="copyDirectLinkBtn" class="button secondary">Link kopieren</button>
+            </div>
+
+            <h2 style="margin-top: 40px;">Vorschau</h2>
+     <div class="button-group">
+                <button type="button" id="updatePreviewBtn" class="button secondary">Vorschau aktualisieren</button>
+                <button type="button" id="fullscreenPreviewBtn" class="button secondary">Vollbild-Vorschau</button>
+            </div>
+            <div class="preview-container">
+                <iframe id="quizPreview"></iframe>
+         </div>
+        </div>
+    </div>
+
+    <script>
+        // ##################################################################################
+        // Hier deine Apps Script Web App URL einfügen!
+        const APPS_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHJw2ekKWfWCcAZT8Vv-UdI68eqoTWwc-utI6YX6MuVd4DvmGHs2ZJN5AwrEaeL-tF/exec";
+        // ##################################################################################
+
+        let currentQuizId = null; // Stores the ID of the currently loaded/edited quiz
+        let currentSpreadsheetId = localStorage.getItem('quiz_spreadsheet_id'); // Load ID from local storage
+
+        const elements = {
+            messageContainer: document.getElementById('messageContainer'),
+            sheetSetupContainer: document.getElementById('sheetSetupContainer'),
+            existingSheetIdInput: document.getElementById('existingSheetIdInput'),
+            setupSheetBtn: document.getElementById('setupSheetBtn'),
+            sheetSetupStatus: document.getElementById('sheetSetupStatus'),
+
+            quizManagerSection: document.getElementById('quizManagerSection'),
+      quizList: document.getElementById('quizList'),
+            loadQuizzesBtn: document.getElementById('loadQuizzesBtn'),
+            createNewQuizBtn: document.getElementById('createNewQuizBtn'),
+            currentQuizIdDisplay: document.getElementById('currentQuizIdDisplay'),
+            currentQuizIdSpan: document.getElementById('currentQuizId'),
+
+            quizEditorSection: document.getElementById('quizEditorSection'),
+            quizTitle: document.getElementById('quizTitle'),
+            brandSelect: document.getElementById('brandSelect'),
+  logoImgSrc: document.getElementById('logoImgSrc'),
+            textLogoFallbackContent: document.getElementById('textLogoFallbackContent'),
+            primaryColor: document.getElementById('primaryColor'),
+            accentColor: document.getElementById('accentColor'),
+            optionLetterColor: document.getElementById('optionLetterColor'),
+            buttonHoverColor: document.getElementById('buttonHoverColor'),
+            textColor: document.getElementById('textColor'),
+           finalLeadLink: document.getElementById('finalLeadLink'),
+
+            leadFormEnabled: document.getElementById('leadFormEnabled'),
+            leadFormDetails: document.getElementById('leadFormDetails'),
+            leadFormTitle: document.getElementById('leadFormTitle'),
+            leadFormDescription: document.getElementById('leadFormDescription'),
+            leadFormSuccessMessage: document.getElementById('leadFormSuccessMessage'),
+            leadFormFieldsContainer: document.getElementById('leadFormFieldsContainer'),
+            addLeadFormFieldBtn: document.getElementById('addLeadFormFieldBtn'),
+
+       thankYouTitle: document.getElementById('thankYouTitle'),
+            thankYouDescription: document.getElementById('thankYouDescription'),
+            thankYouBackgroundColor: document.getElementById('thankYouBackgroundColor'),
+            thankYouTextColor: document.getElementById('thankYouTextColor'),
+
+            questionsContainer: document.getElementById('questionsContainer'),
+            addQuestionBtn: document.getElementById('addQuestionBtn'),
+            saveQuizBtn: document.getElementById('saveQuizBtn'),
+            deleteQuizBtn: document.getElementById('deleteQuizBtn'),
+   resetEditorBtn: document.getElementById('resetEditorBtn'),
+            embedCode: document.getElementById('embedCode'),
+            copyEmbedCodeBtn: document.getElementById('copyEmbedCodeBtn'),
+            directLink: document.getElementById('directLink'),
+            copyDirectLinkBtn: document.getElementById('copyDirectLinkBtn'),
+            quizPreview: document.getElementById('quizPreview'),
+            updatePreviewBtn: document.getElementById('updatePreviewBtn'),
+            fullscreenPreviewBtn: document.getElementById('fullscreenPreviewBtn')
+        };
+        // --- Utility Functions ---
+        function showMessage(msg, type = 'info') {
+            elements.messageContainer.textContent = msg;
+            elements.messageContainer.className = `message ${type}`;
+            elements.messageContainer.style.display = 'block';
+            setTimeout(() => {
+                elements.messageContainer.style.display = 'none';
+            }, 5000);
+        }
+
+        function generateQuizId() {
+            return 'quiz_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        async function apiFetch(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            // FÜGE DIESE NEUE ZEILE HIER EIN:
+            console.log("DEBUG: Sending request with options:", options);
+            // <-- NEUE ZEILE HIER
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("API Fetch Error:", error);
+                showMessage(`API Fehler: ${error.message}`, 'error');
+                throw error; // Re-throw zur weiteren Behandlung
+            }
+        }
+
+        // --- Sheet Setup Logic ---
+        async function setupSheet() {
+            const existingId = elements.existingSheetIdInput.value.trim();
+            elements.sheetSetupStatus.textContent = 'Verbinde mit Google Sheet...';
+            showMessage('Verbinde mit Google Sheet...', 'info');
+            const payload = {
+                action: 'setupSheet',
+                sheetName: 'QuizDatenbank', // Default name if creating new
+                existingSheetId: existingId || null // Pass existing ID if provided
+            };
+            try {
+                const response = await apiFetch(APPS_SCRIPT_WEB_APP_URL, 'POST', payload);
+                if (response.success && response.spreadsheetId) {
+                    currentSpreadsheetId = response.spreadsheetId;
+                    localStorage.setItem('quiz_spreadsheet_id', currentSpreadsheetId);
+                    elements.sheetSetupStatus.textContent = `Verbunden! Sheet ID: ${currentSpreadsheetId}`;
+                    showMessage('Google Sheet erfolgreich verbunden und eingerichtet!', 'success');
+                    elements.sheetSetupContainer.style.display = 'none';
+                    elements.quizManagerSection.style.display = 'block';
+                    loadQuizzes(); // Load quizzes after setup
+                } else {
+                    throw new Error(response.error || 'Unbekannter Fehler beim Einrichten des Sheets.');
+                }
+            } catch (error) {
+                elements.sheetSetupStatus.textContent = `Fehler: ${error.message}`;
+                showMessage(`Fehler beim Einrichten des Sheets: ${error.message}`, 'error');
+            }
+        }
+
+        function initializeSheetSetup() {
+            if (currentSpreadsheetId) {
+                elements.sheetSetupContainer.style.display = 'none';
+                elements.quizManagerSection.style.display = 'block';
+                elements.sheetSetupStatus.textContent = `Verbunden mit Sheet ID: ${currentSpreadsheetId}`; // Korrektur: currentSpreadsheetId
+                loadQuizzes();
+                // Load quizzes if already connected
+            } else {
+                elements.sheetSetupContainer.style.display = 'block';
+                elements.quizManagerSection.style.display = 'none';
+                elements.quizEditorSection.style.display = 'none'; // Hide editor until sheet is set up
+            }
+        }
+
+        // --- Quiz Loading and Management ---
+        async function loadQuizzes() {
+            if (!currentSpreadsheetId) {
+                showMessage('Keine Google Sheet ID gefunden. Bitte richten Sie das Sheet ein.', 'error');
+                return;
+            }
+
+            elements.quizList.innerHTML = '<p>Lade Quizze...</p>';
+            try {
+                const response = await apiFetch(`${APPS_SCRIPT_WEB_APP_URL}?action=listQuizzes&spreadsheet_id=${currentSpreadsheetId}`);
+                if (response.quizzes) {
+                    elements.quizList.innerHTML = '';
+                    // Clear previous list
+                    if (response.quizzes.length === 0) {
+                        elements.quizList.innerHTML = '<p>Noch keine Quizze vorhanden. Erstellen Sie ein neues!</p>';
+                    } else {
+                        response.quizzes.forEach(quiz => {
+                            const quizItem = document.createElement('div');
+                            quizItem.className = 'quiz-list-item';
+       quizItem.innerHTML = `
+                                <span>${quiz.quizTitle || 'Unbenanntes Quiz'} (ID: ${quiz.quizId})</span>
+                                <div>
+                            <button class="button secondary" data-quiz-id="${quiz.quizId}">Bearbeiten</button>
+                                </div>
+                            `;
+         elements.quizList.appendChild(quizItem);
+                        });
+                        // Add event listeners to "Bearbeiten" buttons
+                        elements.quizList.querySelectorAll('.quiz-list-item button').forEach(button => {
+                            button.addEventListener('click', (e) => loadQuizForEditing(e.target.dataset.quizId));
+                        });
+                    }
+                } else {
+                    throw new Error(response.error || 'Fehler beim Laden der Quizze.');
+                }
+            } catch (error) {
+                elements.quizList.innerHTML = `<p style="color:red;">Fehler beim Laden der Quizze: ${error.message}. Bitte überprüfen Sie die Sheet-Verbindung und die Berechtigungen im Apps Script.</p>`;
+                console.error("Error loading quizzes:", error);
+            }
+        }
+
+        async function loadQuizForEditing(quizIdToLoad) {
+            if (!currentSpreadsheetId) {
+                showMessage('Keine Google Sheet ID gefunden. Bitte richten Sie das Sheet ein.', 'error');
+                return;
+            }
+
+            showMessage('Lade Quiz...', 'info');
+            try {
+                const response = await apiFetch(`${APPS_SCRIPT_WEB_APP_URL}?quiz_id=${quizIdToLoad}&spreadsheet_id=${currentSpreadsheetId}`);
+                if (response.error) {
+                    throw new Error(response.error);
+                }
+                fillEditorWithData(response);
+                currentQuizId = quizIdToLoad;
+                // Set the current quiz ID
+                elements.currentQuizIdSpan.textContent = currentQuizId;
+                elements.quizEditorSection.style.display = 'block';
+                elements.deleteQuizBtn.style.display = 'inline-block'; // Show delete button for existing quiz
+                showMessage('Quiz erfolgreich geladen!', 'success');
+                updatePreview(); // Update preview after loading
+            } catch (error) {
+                showMessage(`Fehler beim Laden des Quiz: ${error.message}`, 'error');
+                console.error("Error loading quiz for editing:", error);
+            }
+        }
+
+        function createNewQuiz() {
+            resetEditor();
+            // Clear previous data
+            currentQuizId = generateQuizId();
+            // Generate a new ID
+            elements.currentQuizIdSpan.textContent = currentQuizId + " (NEU)";
+            elements.quizEditorSection.style.display = 'block';
+            elements.deleteQuizBtn.style.display = 'none'; // Hide delete button for new quiz
+            showMessage('Neues Quiz zur Bearbeitung bereit.', 'info');
+            updatePreview();
+        }
+
+        async function deleteQuiz() {
+            if (!currentQuizId || !confirm('Sind Sie sicher, dass Sie dieses Quiz LÖSCHEN möchten? Dies kann nicht rückgängig gemacht werden.')) {
+                return;
+            }
+
+            if (!currentSpreadsheetId) {
+                showMessage('Keine Google Sheet ID gefunden.', 'error');
+                return;
+            }
+
+            showMessage('Lösche Quiz...', 'info');
+            try {
+                const payload = {
+                    action: 'deleteQuiz', // New action for doPost in Apps Script (needs implementation there!)
+                    spreadsheet_id: currentSpreadsheetId,
+                    quizId: currentQuizId
+                };
+                const response = await apiFetch(APPS_SCRIPT_WEB_APP_URL, 'POST', payload);
+                if (response.success) {
+                    showMessage('Quiz erfolgreich gelöscht!', 'success');
+                    resetEditor();
+                    loadQuizzes(); // Refresh quiz list
+                } else {
+                    throw new Error(response.error || 'Fehler beim Löschen des Quiz.');
+                }
+            } catch (error) {
+                showMessage(`Fehler beim Löschen des Quiz: ${error.message}`, 'error');
+                console.error("Error deleting quiz:", error);
+            }
+        }
+
+
+        // --- Data Extraction and Manipulation ---
+        function getQuizDataFromEditor() {
+            const quizQuestions = [];
+            document.querySelectorAll('.quiz-question').forEach((questionDiv, qIndex) => {
+                const questionText = questionDiv.querySelector('.question-text').value;
+                const options = [];
+                let correctAnswerIndex = -1;
+
+                questionDiv.querySelectorAll('.option-item').forEach((optionItem, oIndex) => {
+                    const optionText = optionItem.querySelector('input[type="text"]').value;
+                    const isCorrect = optionItem.querySelector('input[type="radio"]').checked;
+                    options.push(optionText);
+                    if (isCorrect) {
+                        correctAnswerIndex = oIndex;
+                    }
+                });
+
+                quizQuestions.push({
+                    question: questionText,
+                    options: options,
+             answer: correctAnswerIndex,
+                    correctFeedback: questionDiv.querySelector('.correct-feedback').value,
+                    incorrectFeedback: questionDiv.querySelector('.incorrect-feedback').value,
+                    moreInfo: questionDiv.querySelector('.more-info-link').value
+                });
+            });
+
+            const leadFormFields = [];
+            elements.leadFormFieldsContainer.querySelectorAll('.lead-form-field-item').forEach(fieldDiv => {
+                const fieldId = fieldDiv.querySelector('.field-id').value;
+                const fieldLabel = fieldDiv.querySelector('.field-label').value;
+                const fieldType = fieldDiv.querySelector('.field-type').value;
+                const fieldRequired = fieldDiv.querySelector('.field-required').checked;
+                const fieldEnabled = fieldDiv.querySelector('.field-enabled').checked; // Assuming enabled is always true if present and active
+
+                if (fieldId && fieldLabel) { // Only add if ID and Label are present
+                     leadFormFields.push({
+                        id: fieldId,
+                        label: fieldLabel,
+                        type: fieldType,
+                        required: fieldRequired,
+                        enabled: fieldEnabled
+                    });
+                }
+            });
+            const selectedBrandOption = elements.brandSelect.options[elements.brandSelect.selectedIndex];
+            const brandLogo = selectedBrandOption.dataset.logo;
+            const brandTextLogo = selectedBrandOption.dataset.textLogo;
+            return {
+                quizId: currentQuizId,
+                config: {
+                    quizTitle: elements.quizTitle.value,
+                    brand: elements.brandSelect.value,
+                    logoImgSrc: elements.logoImgSrc.value || brandLogo,
+                    textLogoFallbackContent: elements.textLogoFallbackContent.value || brandTextLogo,
+                    primaryColor: elements.primaryColor.value,
+                    accentColor: elements.accentColor.value,
+                    optionLetterColor: elements.optionLetterColor.value,
+                    buttonHoverColor: elements.buttonHoverColor.value,
+                    textColor: elements.textColor.value,
+                    finalLeadLink: elements.finalLeadLink.value,
+                    leadFormEnabled: elements.leadFormEnabled.checked,
+                    leadFormTitle: elements.leadFormTitle.value,
+                    leadFormDescription: elements.leadFormDescription.value,
+                    leadFormSuccessMessage: elements.leadFormSuccessMessage.value,
+                    leadFormFields: leadFormFields,
+                    thankYouTitle: elements.thankYouTitle.value,
+                    thankYouDescription: elements.thankYouDescription.value,
+                    thankYouBackgroundColor: elements.thankYouBackgroundColor.value,
+                    thankYouTextColor: elements.thankYouTextColor.value
+                },
+                questions: quizQuestions
+            };
+        }
+
+        async function saveQuiz() {
+            if (!currentQuizId || !currentSpreadsheetId) {
+                showMessage('Quiz ID oder Google Sheet ID fehlt. Bitte erstellen Sie ein neues Quiz oder richten Sie das Sheet ein.', 'error');
+                return;
+            }
+
+            const quizData = getQuizDataFromEditor();
+            quizData.spreadsheet_id = currentSpreadsheetId;
+            // Add spreadsheet_id to payload
+
+            showMessage('Speichere Quiz...', 'info');
+            elements.saveQuizBtn.disabled = true;
+
+            try {
+                const response = await apiFetch(APPS_SCRIPT_WEB_APP_URL, 'POST', quizData);
+                if (response.success) {
+                    showMessage('Quiz erfolgreich gespeichert!', 'success');
+                    loadQuizzes(); // Refresh list after saving
+                } else {
+                    throw new Error(response.error || 'Unbekannter Fehler beim Speichern.');
+                }
+            } catch (error) {
+                showMessage(`Fehler beim Speichern des Quiz: ${error.message}`, 'error');
+                console.error("Error saving quiz:", error);
+            } finally {
+                elements.saveQuizBtn.disabled = false;
+            }
+        }
+
+
+        function fillEditorWithData(data) {
+            const config = data.config;
+            const questions = data.quizData;
+
+            // General Settings
+            elements.quizTitle.value = config.quizTitle || '';
+            elements.brandSelect.value = config.brand || 'lenzerheide';
+            // Set logo and textLogo based on selected brand if they are empty
+            const selectedBrandOption = elements.brandSelect.options[elements.brandSelect.selectedIndex];
+            elements.logoImgSrc.value = config.logoImgSrc || selectedBrandOption.dataset.logo || '';
+            elements.textLogoFallbackContent.value = config.textLogoFallbackContent || selectedBrandOption.dataset.textLogo || '';
+            elements.primaryColor.value = config.primaryColor || '#f2213b';
+            elements.accentColor.value = config.accentColor || '#ffffff';
+            elements.optionLetterColor.value = config.optionLetterColor || '#f2213b';
+            elements.buttonHoverColor.value = config.buttonHoverColor || '#a81c2f';
+            elements.textColor.value = config.textColor || '#333333';
+            elements.finalLeadLink.value = config.finalLeadLink || '';
+
+            // Lead Form Settings
+            elements.leadFormEnabled.checked = config.leadForm?.enabled || false;
+            toggleLeadFormDetails(); // Show/hide based on checkbox
+            elements.leadFormTitle.value = config.leadForm?.title || 'Nimm am Gewinnspiel teil!';
+            elements.leadFormDescription.value = config.leadForm?.description || 'Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern.';
+            elements.leadFormSuccessMessage.value = config.leadForm?.successMessage || 'Daten erfolgreich gesendet!';
+
+            elements.leadFormFieldsContainer.innerHTML = '';
+            // Clear existing fields
+            (config.leadForm?.fields || []).forEach(field => {
+                // Ensure default values are used if fields are missing properties
+                addLeadFormField(field.id || '', field.label || '', field.type || 'text', field.required || false);
+            });
+            // If no fields loaded, add default ones
+            if (config.leadForm?.fields?.length === 0) {
+                 addLeadFormField('firstName', 'Vorname', 'text', true);
+                 addLeadFormField('lastName', 'Nachname', 'text', true);
+                 addLeadFormField('email', 'E-Mail', 'email', true);
+            }
+
+
+            // Thank You Page Settings
+            elements.thankYouTitle.value = config.thankYou?.title || 'Vielen Dank für deine Teilnahme!';
+            elements.thankYouDescription.value = config.thankYou?.description || 'Möchtest du mehr erfahren? Dann melde dich hier an:';
+            elements.thankYouBackgroundColor.value = config.thankYou?.backgroundColor || '#ffffff';
+            elements.thankYouTextColor.value = config.thankYou?.textColor || '#666666';
+            // Questions
+            elements.questionsContainer.innerHTML = '';
+            // Clear existing questions
+            questions.forEach((q, index) => {
+                addQuestion(index + 1, q); // Add questions with existing data
+            });
+            // Ensure at least one question is present if none loaded
+            if (questions.length === 0) {
+                addQuestion(1);
+            }
+
+            // Update Embed Code and Direct Link
+            updateEmbedCodes();
+        }
+
+        function resetEditor() {
+            currentQuizId = null;
+            elements.currentQuizIdSpan.textContent = "Kein Quiz geladen";
+            elements.deleteQuizBtn.style.display = 'none';
+
+            elements.quizTitle.value = "Neues Quiz";
+            elements.brandSelect.value = "lenzerheide";
+            // Reset logo and textLogo based on default selected brand
+            const defaultBrandOption = elements.brandSelect.options[elements.brandSelect.selectedIndex];
+            elements.logoImgSrc.value = defaultBrandOption.dataset.logo || '';
+            elements.textLogoFallbackContent.value = defaultBrandOption.dataset.textLogo || '';
+            elements.primaryColor.value = "#f2213b";
+            elements.accentColor.value = "#ffffff";
+            elements.optionLetterColor.value = "#f2213b";
+            elements.buttonHoverColor.value = "#a81c2f";
+            elements.textColor.value = "#333333";
+            elements.finalLeadLink.value = "";
+
+            elements.leadFormEnabled.checked = false;
+            toggleLeadFormDetails();
+            elements.leadFormTitle.value = "Nimm am Gewinnspiel teil!";
+            elements.leadFormDescription.value = "Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern.";
+            elements.leadFormSuccessMessage.value = "Daten erfolgreich gesendet!";
+            elements.leadFormFieldsContainer.innerHTML = ''; // Clear fields
+            addLeadFormField('firstName', 'Vorname', 'text', true);
+            addLeadFormField('lastName', 'Nachname', 'text', true);
+            addLeadFormField('email', 'E-Mail', 'email', true);
+
+            elements.thankYouTitle.value = "Vielen Dank für deine Teilnahme!";
+            elements.thankYouDescription.value = "Möchtest du mehr erfahren? Dann melde dich hier an:";
+            elements.thankYouBackgroundColor.value = "#ffffff";
+            elements.thankYouTextColor.value = "#666666";
+
+
+            elements.questionsContainer.innerHTML = '';
+            // Clear all questions
+            addQuestion(1);
+            // Add a single default question
+
+            updateEmbedCodes();
+            updatePreview();
+            showMessage('Editor zurückgesetzt. Starten Sie ein neues Quiz!', 'info');
+        }
+
+
+        // --- Dynamic UI Management (Questions) ---
+        function addQuestion(questionNum = document.querySelectorAll('.quiz-question').length + 1, data = {}) {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'quiz-question';
+            questionDiv.innerHTML = `
+                <h3>Frage ${questionNum}:</h3>
+                <div class="form-group">
+                    <label for="question-${questionNum}-text">Frage:</label>
+                    <input type="text" id="question-${questionNum}-text" class="question-text" value="${data.question || ''}">
+                </div>
+                <div class="options-group">
+                    <label>Antwortmöglichkeiten (richtige auswählen):</label>
+                    <div id="options-container-${questionNum}"></div>
+                    <button type="button" class="button secondary add-option-btn">Option hinzufügen</button>
+                </div>
+                <div class="form-group">
+                    <label for="question-${questionNum}-more-info">Link 'Mehr erfahren' (URL, optional):</label>
+                    <input type="url" id="question-${questionNum}-more-info" class="more-info-link" value="${data.moreInfo || ''}">
+                </div>
+                <div class="form-group">
+                    <label for="question-${questionNum}-correct-feedback">Feedback bei richtiger Antwort:</label>
+                    <textarea id="question-${questionNum}-correct-feedback" class="correct-feedback" rows="2">${data.correctFeedback || 'Richtig!'}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="question-${questionNum}-incorrect-feedback">Feedback bei falscher Antwort:</label>
+                    <textarea id="question-${questionNum}-incorrect-feedback" class="incorrect-feedback" rows="2">${data.incorrectFeedback || 'Leider falsch.'}</textarea>
+                </div>
+                <button type="button" class="button danger remove-question-btn">Frage entfernen</button>
+            `;
+            elements.questionsContainer.appendChild(questionDiv);
+
+            const optionsContainer = questionDiv.querySelector(`#options-container-${questionNum}`);
+            const addOptionBtn = questionDiv.querySelector('.add-option-btn');
+            const removeQuestionBtn = questionDiv.querySelector('.remove-question-btn');
+
+            addOptionBtn.addEventListener('click', () => addOption(optionsContainer, questionNum));
+            removeQuestionBtn.addEventListener('click', () => questionDiv.remove());
+
+            // Populate options if data exists
+            if (data.options && data.options.length > 0) {
+                data.options.forEach((optionText, optIndex) => {
+                    addOption(optionsContainer, questionNum, optionText, data.answer === optIndex);
+                });
+            } else {
+                // Add default options if no data or empty options
+                addOption(optionsContainer, questionNum);
+                addOption(optionsContainer, questionNum);
+                addOption(optionsContainer, questionNum);
+                addOption(optionsContainer, questionNum);
+            }
+        }
+
+        function addOption(optionsContainer, questionNum, optionText = '', isCorrect = false) {
+            const optionItem = document.createElement('div');
+            optionItem.className = 'option-item';
+            optionItem.innerHTML = `
+                <input type="radio" name="correct-option-${questionNum}" ${isCorrect ? 'checked' : ''}>
+                <input type="text" value="${optionText}" placeholder="Antworttext">
+                <button type="button" class="button danger remove-option-btn" style="padding: 5px 10px;">X</button>
+            `;
+            optionsContainer.appendChild(optionItem);
+
+            optionItem.querySelector('.remove-option-btn').addEventListener('click', () => optionItem.remove());
+        }
+
+        // --- Dynamic UI Management (Lead Form Fields) ---
+        function addLeadFormField(id = '', label = '', type = 'text', required = false) {
+            const fieldItem = document.createElement('div');
+            fieldItem.className = 'form-group lead-form-field-item';
+            fieldItem.innerHTML = `
+                <label>Feld:</label>
+                <input type="text" class="field-id" value="${id}" placeholder="Feld ID (z.B. firstName)" required>
+                <input type="text" class="field-label" value="${label}" placeholder="Feld Label (z.B. Vorname)" required>
+                <select class="field-type">
+                    <option value="text" ${type === 'text' ? 'selected' : ''}>Text</option>
+                    <option value="email" ${type === 'email' ? 'selected' : ''}>E-Mail</option>
+                    <option value="tel" ${type === 'tel' ? 'selected' : ''}>Telefon</option>
+                </select>
+                <input type="checkbox" class="field-required" ${required ? 'checked' : ''}> <label>Erforderlich</label>
+                <input type="checkbox" class="field-enabled" checked style="display: none;"> <button type="button" class="button danger remove-field-btn" style="padding: 5px 10px;">X</button>
+            `;
+            elements.leadFormFieldsContainer.appendChild(fieldItem);
+            fieldItem.querySelector('.remove-field-btn').addEventListener('click', () => fieldItem.remove());
+        }
+
+        function toggleLeadFormDetails() {
+            elements.leadFormDetails.style.display = elements.leadFormEnabled.checked ? 'block' : 'none';
+        }
+
+        // --- Embed Code & Preview ---
+        function updateEmbedCodes() {
+            if (!currentQuizId || !currentSpreadsheetId) {
+                elements.embedCode.value = 'Speichern Sie das Quiz, um den Einbettungscode zu erhalten.';
+                elements.directLink.value = 'Speichern Sie das Quiz, um den Link zu erhalten.';
+                return;
+            }
+
+            const widgetBaseUrl = window.location.origin + window.location.pathname.replace('quiz-editor.html', 'quiz-widget.html');
+            const directLink = `${widgetBaseUrl}?quiz_id=${currentQuizId}&spreadsheet_id=${currentSpreadsheetId}`;
+            const embedCode = `<iframe src="${directLink}" style="width: 100%; height: 800px; border: none;" scrolling="no"></iframe>`;
+
+            elements.embedCode.value = embedCode;
+            elements.directLink.value = directLink;
+        }
+
+        function updatePreview() {
+            if (currentQuizId && currentSpreadsheetId) {
+                const widgetBaseUrl = window.location.origin + window.location.pathname.replace('quiz-editor.html', 'quiz-widget.html');
+                elements.quizPreview.src = `${widgetBaseUrl}?quiz_id=${currentQuizId}&spreadsheet_id=${currentSpreadsheetId}`;
+            } else {
+                elements.quizPreview.src = 'about:blank';
+                // Clear preview
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            element.setSelectionRange(0, 99999); // For mobile devices
+            document.execCommand("copy");
+            showMessage('Code/Link kopiert!', 'success');
+        }
+
+        // --- Event Listeners ---
+        elements.setupSheetBtn.addEventListener('click', async () => {
+            const sheetName = 'QuizDatenbank'; // Hardcoded as per discussion
+            const existingSheetId = elements.existingSheetIdInput.value.trim(); // Get from input field
+
+            const payload = {
+                action: 'setupSheet',
+                sheetName: sheetName,
+                existingSheetId: existingSheetId,
+                // spreadsheet_id: currentSpreadsheetId // This line is not needed here, as the ID is assigned *after* setup
+            };
+
+            showMessage('Google Sheet wird eingerichtet...', 'info');
+            try {
+                const response = await apiFetch(APPS_SCRIPT_WEB_APP_URL, 'POST', payload);
+
+                // --- NEUE DEBUG-LOGS HIER EINFÜGEN ---
+                console.log("DEBUG: Response received in click handler:", response);
+                console.log("DEBUG: Wert von response.success:", response.success);
+                // --- ENDE NEUE DEBUG-LOGS ---
+
+                if (response.success) {
+                    console.log("DEBUG: ENTERING SUCCESS BLOCK. UI should update now."); // Neuer Log
+                    currentSpreadsheetId = response.spreadsheetId;
+                    localStorage.setItem('quiz_spreadsheet_id', currentSpreadsheetId);
+                    showMessage(`Sheet erfolgreich eingerichtet! ID: ${currentSpreadsheetId}. <a href="${response.sheetUrl}" target="_blank">Im Google Sheet ansehen</a>`, 'success');
+                    elements.sheetSetupContainer.style.display = 'none';
+                    elements.quizManagerSection.style.display = 'block';
+                    loadQuizzes(); // Load quizzes after setup
+                } else {
+                    console.log("DEBUG: ENTERING ERROR (response.success is false) BLOCK."); // Neuer Log
+                    showMessage(`Fehler beim Einrichten des Sheets: ${response.error || 'Unbekannter Fehler.'}`, 'error');
+                }
+            } catch (error) {
+                console.log("DEBUG: ENTERING CATCH BLOCK (API Fetch failed)."); // Neuer Log
+                showMessage(`Fehler beim Einrichten des Sheets: ${error.message}`, 'error');
+            }
+        });
+        elements.loadQuizzesBtn.addEventListener('click', loadQuizzes);
+        elements.createNewQuizBtn.addEventListener('click', createNewQuiz);
+        elements.saveQuizBtn.addEventListener('click', saveQuiz);
+        elements.deleteQuizBtn.addEventListener('click', deleteQuiz); // Implement delete logic in Apps Script!
+        elements.resetEditorBtn.addEventListener('click', resetEditor);
+
+        elements.addQuestionBtn.addEventListener('click', () => addQuestion());
+        elements.addLeadFormFieldBtn.addEventListener('click', () => addLeadFormField('', '', 'text', true));
+        elements.leadFormEnabled.addEventListener('change', toggleLeadFormDetails);
+
+        elements.brandSelect.addEventListener('change', () => {
+            const selectedOption = elements.brandSelect.options[elements.brandSelect.selectedIndex];
+            elements.logoImgSrc.value = selectedOption.dataset.logo || '';
+            elements.textLogoFallbackContent.value = selectedOption.dataset.textLogo || '';
+        });
+        // Event listeners for dynamic preview updates (throttle if needed)
+        document.querySelectorAll('input, textarea, select').forEach(input => {
+            input.addEventListener('input', updateEmbedCodes);
+        });
+        elements.updatePreviewBtn.addEventListener('click', updatePreview);
+        elements.fullscreenPreviewBtn.addEventListener('click', () => {
+            if (currentQuizId && currentSpreadsheetId) {
+                const widgetBaseUrl = window.location.origin + window.location.pathname.replace('quiz-editor.html', 'quiz-widget.html');
+                window.open(`${widgetBaseUrl}?quiz_id=${currentQuizId}&spreadsheet_id=${currentSpreadsheetId}`, '_blank');
+            } else {
+                showMessage('Kein Quiz geladen für Vollbild-Vorschau.', 'info');
+            }
+        });
+
+        elements.copyEmbedCodeBtn.addEventListener('click', () => copyToClipboard('embedCode'));
+        elements.copyDirectLinkBtn.addEventListener('click', () => copyToClipboard('directLink'));
+
+        // Initial setup
+        initializeSheetSetup();
+        // Add one default question when starting if questionsContainer is empty
+        if (elements.questionsContainer.children.length === 0) {
+             addQuestion(1);
+        }
+        // Add default lead form fields if container is empty
+        if (elements.leadFormFieldsContainer.children.length === 0) {
+            addLeadFormField('firstName', 'Vorname', 'text', true);
+            addLeadFormField('lastName', 'Nachname', 'text', true);
+            addLeadFormField('email', 'E-Mail', 'email', true);
+        }
+
+    </script>
+</body>
+</html>

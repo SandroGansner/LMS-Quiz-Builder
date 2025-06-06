@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Konfigurator & Manager</title>
+    <!-- Tailwind CSS CDN für modernes Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Benutzerdefinierte Stile zur Ergänzung von Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            border: 1px solid #e0e0e0;
+            background-color: #fdfdfd;
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="url"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 1rem;
+        }
+        textarea {
+            resize: vertical;
+        }
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .quiz-question, .lead-form-field-item {
+            border: 1px solid #d0d0d0;
+            background-color: #fafafa;
+        }
+        .option-item {
+            display: flex;
+            align-items: center;
+        }
+        .option-item input[type="text"] {
+            flex-grow: 1;
+            margin-right: 0.5rem;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: bold;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .quiz-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 0.375rem; /* rounded-md */
+            background-color: #fafafa;
+        }
+        .quiz-list-item:hover {
+            background-color: #f0f0f0;
+        }
+        #firebaseSetupContainer {
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+        }
+        .logo-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(60px * 1.35); /* Erhöht um 35 % */
+        }
+
+        .logo-area img {
+            max-width: calc(180px * 1.35); /* Erhöht um 35 % */
+            max-height: calc(60px * 1.35); /* Erhöht um 35 % */
+            object-fit: contain;
+            border-radius: 0.375rem;
+        }
+
+        .logo-area span {
+            font-size: calc(2rem * 1.35); /* Erhöht um 35 % */
+            font-weight: 800;
+            color: var(--text-color);
+        }
+    </style>
+    <!-- Firebase SDK laden -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+        import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs, updateDoc, increment, query } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+
+        // Dein Firebase Konfigurationsobjekt
+        // ********************************************************************************
+        // BITTE HIER DEINE ECHTEN FIREBASE-KONFIGURATIONSDATEN EINFÜGEN!
+        // Kopiere sie aus den Projekteinstellungen deiner Firebase Console.
+        // Beispiel:
+        // const firebaseConfig = {
+        //     apiKey: "DEIN_API_KEY",
+        //     authDomain: "DEIN_AUTH_DOMAIN",
+        //     projectId: "DEIN_PROJECT_ID",
+        //     storageBucket: "DEIN_STORAGE_BUCKET",
+        //     messagingSenderId: "DEIN_MESSAGING_SENDER_ID",
+        //     appId: "DEIN_APP_ID"
+        // };
+        // ********************************************************************************
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJFQeFp5JCWO6jRUiICTTkNVulmak19kY", // ERSETZE DIESEN PLATZHALTER
+            authDomain: "quizmanager-6afce.firebaseapp.com", // ERSETZE DIESEN PLATZHALTER
+            projectId: "quizmanager-6afce", // ERSETZE DIESEN PLATZHALTER
+            storageBucket: "quizmanager-6afce.firebasestorage.app", // ERSETZE DIESEN PLATZHALTER
+            messagingSenderId: "156264147382", // ERSETZE DIESEN PLATZHALTER
+            appId: "1:156264147382:web:d2461ed98767350e9df917" // ERSETZE DIESEN PLATZHALTER
+        };
+
+
+        // Firebase initialisieren
+        let app;
+        let db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase initialisiert successfully.");
+        } catch (error) {
+            console.error("Fehler bei der Firebase-Initialisierung:", error);
+            console.error(`Firebase-Initialisierung fehlgeschlagen: ${error.message}.`);
+            document.getElementById('firebaseSetupStatus').textContent = `Fehler: Firebase-Initialisierung fehlgeschlagen: ${error.message}. Überprüfe deine firebaseConfig.`;
+            document.getElementById('firebaseSetupStatus').classList.remove('text-green-700');
+            document.getElementById('firebaseSetupStatus').classList.add('text-red-600');
+        }
+
+
+        // Exportiere db für andere Module, falls nötig, oder direkt hier verwenden
+        if (db) {
+            window.db = db;
+            window.collection = collection;
+            window.doc = doc;
+            window.getDoc = getDoc;
+            window.setDoc = setDoc;
+            window.deleteDoc = deleteDoc;
+            window.getDocs = getDocs;
+            window.updateDoc = updateDoc;
+            window.increment = increment;
+            window.query = query;
+        } else {
+            console.error("Firestore database (db) is not initialized. Cannot make global.");
+        }
+    </script>
+</head>
+<body class="p-5">
+    <div class="container mx-auto bg-white p-8 rounded-lg shadow-xl">
+        <h1 class="text-3xl font-bold mb-6">Quiz Konfigurator & Manager</h1>
+        <p class="mb-6">Erstelle, bearbeite und verwalte deine interaktiven Quizze. Alle Änderungen werden sicher in deiner Firebase Firestore Datenbank gespeichert.</p>
+
+        <div id="messageContainer" class="message hidden mb-4 rounded-md" role="alert"></div>
+
+        <div id="firebaseSetupContainer" class="section p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Firebase Verbindung & Sicherheit</h2>
+            <p class="mb-4">Um Quizze zu speichern und zu laden, muss eine Verbindung zu Firebase Firestore hergestellt werden.</p>
+            <p class="mb-4 text-red-600 font-bold">WICHTIG: Stelle sicher, dass du deine Firebase-Konfiguration im Code oben mit deinen eigenen Daten ersetzt hast!</p>
+            <p class="mb-4">Überprüfe auch die Firebase Firestore Sicherheitsregeln. Für den Anfang könntest du Regeln wie diese verwenden (nur für Entwicklung, NICHT für Produktion!):</p>
+            <pre class="bg-gray-100 p-3 rounded-md text-sm whitespace-pre-wrap">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /quizzes/{quizId} {
+      allow read, write: if true; // Nur für Entwicklung!
+    }
+  }
+}</pre>
+            <p id="firebaseSetupStatus" class="font-bold mt-4 text-green-700">Firebase sollte initialisiert sein, wenn die Konfiguration korrekt ist.</p>
+            <p class="text-gray-600 mt-2">Wenn du Fehler in der Konsole siehst, überprüfe deine `firebaseConfig` im Code oben.</p>
+        </div>
+
+        <div id="quizManagerSection" class="section p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Gespeicherte Quizze</h2>
+            <div id="quizList" class="space-y-3">
+                <p class="text-gray-600">Lade Quizze, um sie hier anzuzeigen...</p>
+            </div>
+            <div class="button-group flex flex-wrap gap-2 mt-6">
+                <button id="loadQuizzesBtn" class="button bg-gray-600 text-white rounded-md hover:bg-gray-700">Quizze laden</button>
+                <button id="createNewQuizBtn" class="button bg-blue-500 text-white rounded-md hover:bg-blue-600">Neues Quiz erstellen</button>
+            </div>
+            <p id="currentQuizIdDisplay" class="font-bold mt-4">Aktuelles Quiz: <span id="currentQuizId" class="break-all">Kein Quiz geladen</span></p>
+        </div>
+
+        <div id="quizEditorSection" class="section p-6 rounded-lg shadow-md mb-8 hidden">
+            <h2 class="text-2xl font-semibold mb-4">Quiz Konfigurator</h2>
+            <div class="form-group mb-4">
+                <label for="quizTitle" class="block text-gray-700 mb-1">Quiz Titel:</label>
+                <input type="text" id="quizTitle" value="Neues Quiz" class="border border-gray-300 rounded-md p-2 w-full">
+            </div>
+            <div class="form-group mb-4">
+                <label for="brandSelect" class="block text-gray-700 mb-1">Marke auswählen:</label>
+                <select id="brandSelect" class="border border-gray-300 rounded-md p-2 w-full">
+                    <option value="lenzerheide" data-logo="https://placehold.co/100x40/FF0000/FFFFFF?text=LENZERHEIDE" data-text-logo="Lenzerheide">Lenzerheide</option>
+                    <option value="bikekingdom" data-logo="https://placehold.co/100x40/000000/FFFFFF?text=BIKE+KINGDOM" data-text-logo="Bike Kingdom">Bike Kingdom</option>
+                </select>
+            </div>
+
+            <!-- Die folgenden Farbfelder wurden entfernt, da sie nun automatisch gesetzt werden -->
+            <input type="hidden" id="primaryColor" value="#f2213b">
+            <input type="hidden" id="accentColor" value="#ffffff">
+            <input type="hidden" id="optionLetterColor" value="#f2213b">
+            <input type="hidden" id="buttonHoverColor" value="#a81c2f">
+            <input type="hidden" id="textColor" value="#333333">
+
+            <div class="form-group mb-4">
+                <label for="finalLeadLink" class="block text-gray-700 mb-1">Link zum Lead-Formular (URL, optional):</label>
+                <input type="url" id="finalLeadLink" placeholder="z.B. https://www.eure-firma.com/anmeldung" class="border border-gray-300 rounded-md p-2 w-full">
+                <small class="text-gray-500">Dies ist die URL zu eurem externen Anmeldeformular, zu dem die Nutzer nach dem Quiz weitergeleitet werden.</small>
+            </div>
+
+            <h2 class="text-2xl font-semibold mt-8 mb-4">Lead-Formular Einstellungen</h2>
+            <div class="form-group mb-4">
+                <input type="checkbox" id="leadFormEnabled" class="mr-2">
+                <label for="leadFormEnabled" class="inline-block text-gray-700">Lead-Formular am Ende des Quiz anzeigen (Weiterleitung zum externen Formular)</label>
+            </div>
+            <div id="leadFormDetails" class="hidden pl-4 border-l-2 border-gray-200">
+                <div class="form-group mb-4">
+                    <label for="leadFormTitle" class="block text-gray-700 mb-1">Titel der Lead-Formular-Seite (im Quiz):</label>
+                    <input type="text" id="leadFormTitle" value="Nimm am Gewinnspiel teil!" class="border border-gray-300 rounded-md p-2 w-full">
+                </div>
+                <div class="form-group mb-4">
+                    <label for="leadFormDescription" class="block text-gray-700 mb-1">Beschreibung der Lead-Formular-Seite (im Quiz):</label>
+                    <textarea id="leadFormDescription" rows="3" class="border border-gray-300 rounded-md p-2 w-full">Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern. Du wirst zu unserem Anmeldeformular weitergeleitet.</textarea>
+                </div>
+                <!-- Die Felder des Lead-Formulars werden hier nicht mehr dynamisch verwaltet, da sie extern sind -->
+                <p class="text-gray-600">Die eigentlichen Felder des Lead-Formulars werden von eurem externen System verwaltet, nicht hier im Quiz-Editor.</p>
+            </div>
+
+            <h2 class="text-2xl font-semibold mt-8 mb-4">Danke-Seite Einstellungen</h2>
+            <div class="form-group mb-4">
+                <label for="thankYouTitle" class="block text-gray-700 mb-1">Danke-Seite Titel:</label>
+                <input type="text" id="thankYouTitle" value="Vielen Dank für deine Teilnahme!" class="border border-gray-300 rounded-md p-2 w-full">
+            </div>
+            <div class="form-group mb-4">
+                <label for="thankYouDescription" class="block text-gray-700 mb-1">Danke-Seite Beschreibung:</label>
+                <textarea id="thankYouDescription" rows="3" class="border border-gray-300 rounded-md p-2 w-full">Möchtest du mehr erfahren? Dann melde dich hier an:</textarea>
+            </div>
+            <div class="form-group mb-4">
+                <label for="thankYouBackgroundColor" class="block text-gray-700 mb-1">Danke-Seite Hintergrundfarbe:</label>
+                <input type="color" id="thankYouBackgroundColor" value="#ffffff" class="border border-gray-300 rounded-md p-2 w-full">
+            </div>
+            <div class="form-group mb-4">
+                <label for="thankYouTextColor" class="block text-gray-700 mb-1">Danke-Seite Textfarbe:</label>
+                <input type="color" id="thankYouTextColor" value="#666666" class="border border-gray-300 rounded-md p-2 w-full">
+            </div>
+
+            <h2 class="text-2xl font-semibold mt-8 mb-4">Quiz Fragen</h2>
+            <div id="questionsContainer" class="space-y-6">
+            </div>
+            <button type="button" id="addQuestionBtn" class="button bg-blue-500 text-white rounded-md hover:bg-blue-600 mt-6">Frage hinzufügen</button>
+
+            <div class="button-group flex flex-wrap gap-2 mt-8">
+                <button type="button" id="saveQuizBtn" class="button bg-green-500 text-white rounded-md hover:bg-green-600">Quiz speichern</button>
+                <button type="button" id="deleteQuizBtn" class="button bg-red-500 text-white rounded-md hover:bg-red-600 hidden">Quiz löschen</button>
+                <button type="button" id="resetEditorBtn" class="button bg-gray-600 text-white rounded-md hover:bg-gray-700">Editor zurücksetzen</button>
+            </div>
+
+            <h2 class="text-2xl font-semibold mt-10 mb-4">Einbettungscode</h2>
+            <div class="form-group mb-4">
+                <label for="embedCode" class="block text-gray-700 mb-1">Kopiere diesen Code und füge ihn in deine Landingpage ein:</label>
+                <textarea id="embedCode" rows="4" readonly class="border border-gray-300 rounded-md p-2 w-full bg-gray-100"></textarea>
+                <button type="button" id="copyEmbedCodeBtn" class="button bg-gray-600 text-white rounded-md hover:bg-gray-700 mt-2">Code kopieren</button>
+            </div>
+            <div class="form-group mb-4">
+                <label for="directLink" class="block text-gray-700 mb-1">Direkter Link zum Teilen des Quiz:</label>
+                <input type="url" id="directLink" readonly class="border border-gray-300 rounded-md p-2 w-full bg-gray-100">
+                <button type="button" id="copyDirectLinkBtn" class="button bg-gray-600 text-white rounded-md hover:bg-gray-700 mt-2">Link kopieren</button>
+            </div>
+
+            <h2 class="text-2xl font-semibold mt-10 mb-4">Vorschau</h2>
+            <div class="button-group flex flex-wrap gap-2 mt-4">
+                <button type="button" id="updatePreviewBtn" class="button bg-gray-600 text-white rounded-md hover:bg-gray-700">Vorschau aktualisieren</button>
+                <button type="button" id="fullscreenPreviewBtn" class="button bg-gray-600 text-white rounded-md hover:bg-gray-700">Vollbild-Vorschau</button>
+            </div>
+            <div class="preview-container border border-gray-300 rounded-md overflow-hidden mt-4">
+                <iframe id="quizPreview" class="w-full h-[600px] border-none"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Firestore Initialisierung
+        let app;
+        let db;
+        try {
+            // Dein Firebase Konfigurationsobjekt muss hier eingefügt werden.
+            // Es wird angenommen, dass es hier korrekt ersetzt wurde.
+            const firebaseConfig = {
+                apiKey: "AIzaSyBJFQeFp5JCWO6jRUiICTTkNVulmak19kY", // ERSETZE DIESEN PLATZHALTER
+                authDomain: "quizmanager-6afce.firebaseapp.com", // ERSETZE DIESEN PLATZHALTER
+                projectId: "quizmanager-6afce", // ERSETZE DIESEN PLATZHALTER
+                storageBucket: "quizmanager-6afce.firebasestorage.app", // ERSETZE DIESEN PLATZHALTER
+                messagingSenderId: "156264147382", // ERSETZE DIESEN PLATZHALTER
+                appId: "1:156264147382:web:d2461ed98767350e9df917" // ERSETZE DIESEN PLATZHALTER
+            };
+
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase initialisiert successfully.");
+        } catch (error) {
+            console.error("Fehler bei der Firebase-Initialisierung:", error);
+            console.error(`Firebase-Initialisierung fehlgeschlagen: ${error.message}.`);
+            document.getElementById('firebaseSetupStatus').textContent = `Fehler: Firebase-Initialisierung fehlgeschlagen: ${error.message}. Überprüfe deine firebaseConfig.`;
+            document.getElementById('firebaseSetupStatus').classList.remove('text-green-700');
+            document.getElementById('firebaseSetupStatus').classList.add('text-red-600');
+        }
+
+        // Globale Verfügbarkeit der Firebase-Objekte
+        if (db) {
+            window.db = db;
+            window.collection = collection;
+            window.doc = doc;
+            window.getDoc = getDoc;
+            window.setDoc = setDoc;
+            window.deleteDoc = deleteDoc;
+            window.getDocs = getDocs;
+            window.updateDoc = updateDoc;
+            window.increment = increment;
+            window.query = query;
+        } else {
+            console.error("Firestore database (db) is not initialized. Cannot make global.");
+        }
+
+        let currentQuizId = null;
+
+        // Referenzen zu HTML-Elementen
+        const elements = {
+            messageContainer: document.getElementById('messageContainer'),
+            firebaseSetupContainer: document.getElementById('firebaseSetupContainer'),
+            firebaseSetupStatus: document.getElementById('firebaseSetupStatus'),
+            quizManagerSection: document.getElementById('quizManagerSection'),
+            quizList: document.getElementById('quizList'),
+            loadQuizzesBtn: document.getElementById('loadQuizzesBtn'),
+            createNewQuizBtn: document.getElementById('createNewQuizBtn'),
+            currentQuizIdDisplay: document.getElementById('currentQuizIdDisplay'),
+            currentQuizIdSpan: document.getElementById('currentQuizId'),
+            quizEditorSection: document.getElementById('quizEditorSection'),
+            quizTitle: document.getElementById('quizTitle'),
+            brandSelect: document.getElementById('brandSelect'),
+            // logoImgSrc und textLogoFallbackContent entfernt (HTML-Felder nicht mehr vorhanden)
+            // Farbfelder bleiben unverändert
+            primaryColor: document.getElementById('primaryColor'),
+            accentColor: document.getElementById('accentColor'),
+            optionLetterColor: document.getElementById('optionLetterColor'),
+            buttonHoverColor: document.getElementById('buttonHoverColor'),
+            textColor: document.getElementById('textColor'),
+            finalLeadLink: document.getElementById('finalLeadLink'),
+            leadFormEnabled: document.getElementById('leadFormEnabled'),
+            leadFormDetails: document.getElementById('leadFormDetails'),
+            leadFormTitle: document.getElementById('leadFormTitle'),
+            leadFormDescription: document.getElementById('leadFormDescription'),
+            thankYouTitle: document.getElementById('thankYouTitle'),
+            thankYouDescription: document.getElementById('thankYouDescription'),
+            thankYouBackgroundColor: document.getElementById('thankYouBackgroundColor'),
+            thankYouTextColor: document.getElementById('thankYouTextColor'),
+            questionsContainer: document.getElementById('questionsContainer'),
+            addQuestionBtn: document.getElementById('addQuestionBtn'),
+            saveQuizBtn: document.getElementById('saveQuizBtn'),
+            deleteQuizBtn: document.getElementById('deleteQuizBtn'),
+            resetEditorBtn: document.getElementById('resetEditorBtn'),
+            embedCode: document.getElementById('embedCode'),
+            copyEmbedCodeBtn: document.getElementById('copyEmbedCodeBtn'),
+            directLink: document.getElementById('directLink'),
+            copyDirectLinkBtn: document.getElementById('copyDirectLinkBtn'),
+            quizPreview: document.getElementById('quizPreview'),
+            updatePreviewBtn: document.getElementById('updatePreviewBtn'),
+            fullscreenPreviewBtn: document.getElementById('fullscreenPreviewBtn')
+        };
+
+        // --- Hilfsfunktionen ---
+        function showMessage(msg, type = 'info') {
+            elements.messageContainer.innerHTML = msg;
+            elements.messageContainer.className = `message ${type} mb-4 rounded-md`;
+            elements.messageContainer.classList.remove('hidden');
+            setTimeout(() => {
+                elements.messageContainer.classList.add('hidden');
+            }, 5000);
+        }
+
+        function generateQuizId() {
+            return 'quiz_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        // --- Firebase Firestore Operationen ---
+
+        async function loadQuizzes() {
+            console.log("Attempting to load quizzes...");
+            elements.quizList.innerHTML = '<p class="text-gray-600">Lade Quizze...</p>';
+            if (!window.db) {
+                showMessage('Firebase Firestore ist nicht initialisiert. Bitte überprüfe deine Konfiguration.', 'error');
+                elements.quizList.innerHTML = '<p class="text-red-600">Fehler: Firebase Firestore nicht verfügbar.</p>';
+                return;
+            }
+            try {
+                const quizzesCol = window.collection(window.db, 'quizzes');
+                const quizSnapshot = await window.getDocs(quizzesCol);
+                console.log("Quiz snapshot received. Number of quizzes:", quizSnapshot.size);
+
+                elements.quizList.innerHTML = '';
+                if (quizSnapshot.empty) {
+                    elements.quizList.innerHTML = '<p class="text-gray-600">Noch keine Quizze vorhanden. Erstellen Sie ein neues!</p>';
+                } else {
+                    quizSnapshot.forEach(doc => {
+                        const quizData = doc.data();
+                        const quizId = doc.id;
+                        const quizItem = document.createElement('div');
+                        quizItem.className = 'quiz-list-item bg-white p-3 rounded-md shadow-sm';
+                        quizItem.innerHTML = `
+                            <span class="font-medium text-lg">${quizData.config.quizTitle || 'Unbenanntes Quiz'} (ID: ${quizId})</span>
+                            <div class="flex space-x-2">
+                                <button class="button bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600" data-quiz-id="${quizId}">Bearbeiten</button>
+                                <button class="button bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 delete-btn" data-quiz-id="${quizId}">Löschen</button>
+                            </div>
+                        `;
+                        elements.quizList.appendChild(quizItem);
+                    });
+                    elements.quizList.querySelectorAll('.quiz-list-item button:not(.delete-btn)').forEach(button => {
+                        button.addEventListener('click', async (e) => await loadQuizForEditing(e.target.dataset.quizId));
+                    });
+                    elements.quizList.querySelectorAll('.quiz-list-item .delete-btn').forEach(button => {
+                        button.addEventListener('click', async (e) => {
+                            const quizIdToDelete = e.target.dataset.quizId;
+                            const confirmDelete = await showCustomConfirm(`Möchten Sie das Quiz "${quizIdToDelete}" wirklich löschen? Dies kann NICHT rückgängig gemacht werden.`);
+                            if (confirmDelete) {
+                                const success = await deleteQuiz(quizIdToDelete);
+                                if (success) {
+                                    loadQuizzes();
+                                    if (currentQuizId === quizIdToDelete) {
+                                        resetEditor();
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
+            } catch (error) {
+                elements.quizList.innerHTML = `<p class="text-red-600">Fehler beim Laden der Quizze: ${error.message}. Bitte überprüfe deine Firebase-Konfiguration und Sicherheitsregeln.</p>`;
+                console.error("Fehler beim Laden der Quizze:", error);
+                showMessage(`Fehler beim Laden der Quizze: ${error.message}`, 'error');
+            }
+            // Verstecke den Firebase Setup Container nach erfolgreichem Laden/Initialisieren der Quizze
+            elements.firebaseSetupContainer.classList.add('hidden');
+        }
+
+        function showCustomConfirm(message) {
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50';
+                overlay.innerHTML = `
+                    <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
+                        <p class="text-lg font-semibold mb-4">${message}</p>
+                        <div class="flex justify-center space-x-4">
+                            <button id="confirmYes" class="button bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Ja</button>
+                            <button id="confirmNo" class="button bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Nein</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                document.getElementById('confirmYes').addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(true);
+                });
+                document.getElementById('confirmNo').addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(false);
+                });
+            });
+        }
+
+        async function loadQuizForEditing(quizIdToLoad) {
+            showMessage('Lade Quiz...', 'info');
+            if (!window.db) {
+                showMessage('Firebase Firestore ist nicht initialisiert.', 'error');
+                return;
+            }
+            try {
+                const quizDocRef = window.doc(window.db, 'quizzes', quizIdToLoad);
+                const quizDocSnap = await window.getDoc(quizDocRef);
+
+                if (quizDocSnap.exists()) {
+                    const quizData = quizDocSnap.data();
+                    fillEditorWithData(quizData);
+                    currentQuizId = quizIdToLoad;
+                    elements.currentQuizIdSpan.textContent = currentQuizId;
+                    elements.quizEditorSection.classList.remove('hidden');
+                    elements.deleteQuizBtn.classList.remove('hidden');
+                    showMessage('Quiz erfolgreich geladen!', 'success');
+                    updatePreview();
+                } else {
+                    throw new Error("Quiz nicht gefunden.");
+                }
+            } catch (error) {
+                showMessage(`Fehler beim Laden des Quiz: ${error.message}`, 'error');
+                console.error("Fehler beim Laden des Quiz zur Bearbeitung:", error);
+                resetEditor();
+            }
+        }
+
+        function createNewQuiz() {
+            resetEditor();
+            currentQuizId = generateQuizId();
+            elements.currentQuizIdSpan.textContent = currentQuizId + " (NEU)";
+            elements.quizEditorSection.classList.remove('hidden');
+            elements.deleteQuizBtn.classList.add('hidden');
+            showMessage('Neues Quiz zur Bearbeitung bereit.', 'info');
+            updatePreview();
+        }
+
+        async function deleteQuiz(quizIdToDelete) {
+            showMessage('Lösche Quiz...', 'info');
+            if (!window.db) {
+                showMessage('Firebase Firestore ist nicht initialisiert.', 'error');
+                return false;
+            }
+            try {
+                await window.deleteDoc(window.doc(window.db, 'quizzes', quizIdToDelete));
+                showMessage('Quiz erfolgreich gelöscht!', 'success');
+                return true;
+            } catch (error) {
+                showMessage(`Fehler beim Löschen des Quiz: ${error.message}`, 'error');
+                console.error("Fehler beim Löschen des Quiz:", error);
+                return false;
+            }
+        }
+
+        // --- Datenextraktion und -manipulation (Frontend) ---
+        function getQuizDataFromEditor() {
+            const quizQuestions = [];
+            document.querySelectorAll('.quiz-question').forEach((questionDiv) => {
+                const questionText = questionDiv.querySelector('.question-text').value;
+                const options = [];
+                let correctAnswerIndex = -1;
+
+                questionDiv.querySelectorAll('.option-item').forEach((optionItem, oIndex) => {
+                    const optionText = optionItem.querySelector('input[type="text"]').value;
+                    const isCorrect = optionItem.querySelector('input[type="radio"]').checked;
+                    options.push(optionText);
+                    if (isCorrect) {
+                        correctAnswerIndex = oIndex;
+                    }
+                });
+
+                quizQuestions.push({
+                    question: questionText,
+                    options: options,
+                    answer: correctAnswerIndex,
+                    correctFeedback: questionDiv.querySelector('.correct-feedback').value,
+                    incorrectFeedback: questionDiv.querySelector('.incorrect-feedback').value,
+                    moreInfo: questionDiv.querySelector('.more-info-link').value
+                });
+            });
+
+            const selectedBrandOption = elements.brandSelect.options[elements.brandSelect.selectedIndex];
+            const brandLogo = selectedBrandOption.dataset.logo;
+            const brandTextLogo = selectedBrandOption.dataset.textLogo;
+
+            return {
+                quizId: currentQuizId,
+                config: {
+                    quizTitle: elements.quizTitle.value,
+                    brand: elements.brandSelect.value,
+                    logoImgSrc: brandLogo, // logoImgSrc direkt aus dem data-Attribut
+                    textLogoFallbackContent: brandTextLogo, // textLogoFallbackContent aus data-Attribut
+                    primaryColor: elements.primaryColor.value,
+                    accentColor: elements.accentColor.value,
+                    optionLetterColor: elements.optionLetterColor.value,
+                    buttonHoverColor: elements.buttonHoverColor.value,
+                    textColor: elements.textColor.value,
+                    finalLeadLink: elements.finalLeadLink.value,
+                    leadFormEnabled: elements.leadFormEnabled.checked,
+                    leadFormTitle: elements.leadFormTitle.value,
+                    leadFormDescription: elements.leadFormDescription.value,
+                    thankYouTitle: elements.thankYouTitle.value,
+                    thankYouDescription: elements.thankYouDescription.value,
+                    thankYouBackgroundColor: elements.thankYouBackgroundColor.value,
+                    thankYouTextColor: elements.thankYouTextColor.value
+                },
+                questions: quizQuestions,
+            };
+        }
+
+        async function saveQuiz() {
+            console.log("saveQuiz function called.");
+            if (!currentQuizId) {
+                showMessage('Fehler: Keine Quiz-ID vorhanden. Erstellen Sie ein neues Quiz, bevor Sie speichern.', 'error');
+                console.error("No currentQuizId set. Cannot save.");
+                return;
+            }
+
+            const quizData = getQuizDataFromEditor();
+            console.log("Quiz Data extracted:", quizData);
+
+            showMessage('Speichere Quiz...', 'info');
+            elements.saveQuizBtn.disabled = true;
+
+            if (!window.db) {
+                showMessage('Firebase Firestore ist nicht initialisiert.', 'error');
+                elements.saveQuizBtn.disabled = false;
+                console.error("Firebase Firestore is not initialized. Cannot save.");
+                return;
+            }
+            try {
+                const quizDocRef = window.doc(window.db, 'quizzes', quizData.quizId);
+                console.log("Attempting to set document:", quizDocRef.path, quizData);
+                await window.setDoc(quizDocRef, quizData, { merge: true });
+                console.log("Document set successfully.");
+
+                showMessage('Quiz erfolgreich gespeichert!', 'success');
+                loadQuizzes();
+                currentQuizId = quizData.quizId;
+                elements.currentQuizIdSpan.textContent = currentQuizId;
+                elements.deleteQuizBtn.classList.remove('hidden');
+            } catch (error) {
+                showMessage(`Fehler beim Speichern des Quiz: ${error.message}`, 'error');
+                console.error("Fehler beim Speichern des Quiz:", error);
+            } finally {
+                elements.saveQuizBtn.disabled = false;
+            }
+        }
+
+        function fillEditorWithData(data) {
+            const config = data.config;
+            const questions = data.questions;
+
+            // Allgemeine Einstellungen
+            elements.quizTitle.value = config.quizTitle || '';
+            elements.brandSelect.value = config.brand || 'lenzerheide';
+            // Trigger brand change, um Farben und Logo-Presets anzuwenden
+            handleBrandChange();
+
+            // Die Felder logoImgSrc und textLogoFallbackContent wurden entfernt – 
+            // stattdessen werden die Daten aus den data-Attributen der Marke genutzt.
+            elements.finalLeadLink.value = config.finalLeadLink || '';
+
+            // Lead-Formular Einstellungen
+            elements.leadFormEnabled.checked = config.leadFormEnabled || false;
+            toggleLeadFormDetails();
+            elements.leadFormTitle.value = config.leadFormTitle || 'Nimm am Gewinnspiel teil!';
+            elements.leadFormDescription.value = config.leadFormDescription || 'Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern. Du wirst zu unserem Anmeldeformular weitergeleitet.';
+
+            // Danke-Seite Einstellungen
+            elements.thankYouTitle.value = config.thankYouTitle || 'Vielen Dank für deine Teilnahme!';
+            elements.thankYouDescription.value = config.thankYouDescription || 'Möchtest du mehr erfahren? Dann melde dich hier an:';
+            elements.thankYouBackgroundColor.value = config.thankYouBackgroundColor || '#ffffff';
+            elements.thankYouTextColor.value = config.thankYouTextColor || '#666666';
+
+            // Fragen
+            elements.questionsContainer.innerHTML = '';
+            (questions || []).forEach((q, index) => {
+                addQuestion(index + 1, q);
+            });
+            if ((questions || []).length === 0) {
+                addQuestion(1);
+            }
+
+            updateEmbedCodes();
+        }
+
+        function resetEditor() {
+            currentQuizId = null;
+            elements.currentQuizIdSpan.textContent = "Kein Quiz geladen";
+            elements.deleteQuizBtn.classList.add('hidden');
+
+            elements.quizTitle.value = "Neues Quiz";
+            elements.brandSelect.value = "lenzerheide";
+            handleBrandChange(); // Setzt Standardfarben für Lenzerheide
+            elements.finalLeadLink.value = "";
+
+            elements.leadFormEnabled.checked = false;
+            toggleLeadFormDetails();
+            elements.leadFormTitle.value = "Nimm am Gewinnspiel teil!";
+            elements.leadFormDescription.value = "Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern. Du wirst zu unserem Anmeldeformular weitergeleitet.";
+
+            elements.thankYouTitle.value = "Vielen Dank für deine Teilnahme!";
+            elements.thankYouDescription.value = "Möchtest du mehr erfahren? Dann melde dich hier an:";
+            elements.thankYouBackgroundColor.value = "#ffffff";
+            elements.thankYouTextColor.value = "#666666";
+
+            elements.questionsContainer.innerHTML = '';
+            addQuestion(1);
+
+            updateEmbedCodes();
+            updatePreview();
+            showMessage('Editor zurückgesetzt. Starten Sie ein neues Quiz!', 'info');
+        }
+
+        // --- Dynamische UI-Verwaltung (Fragen) ---
+        function addQuestion(questionNum = document.querySelectorAll('.quiz-question').length + 1, data = {}) {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'quiz-question p-4 rounded-md shadow-sm mb-4';
+            questionDiv.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3">Frage ${questionNum}:</h3>
+                <div class="form-group mb-4">
+                    <label for="question-${questionNum}-text" class="block text-gray-700 mb-1">Frage:</label>
+                    <input type="text" id="question-${questionNum}-text" class="question-text border border-gray-300 rounded-md p-2 w-full" value="${data.question || ''}">
+                </div>
+                <div class="options-group mb-4">
+                    <label class="block text-gray-700 mb-2">Antwortmöglichkeiten (richtige auswählen):</label>
+                    <div id="options-container-${questionNum}" class="space-y-2"></div>
+                    <button type="button" class="button bg-gray-600 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-700 add-option-btn mt-2">Option hinzufügen</button>
+                </div>
+                <div class="form-group mb-4">
+                    <label for="question-${questionNum}-more-info" class="block text-gray-700 mb-1">Link 'Mehr erfahren' (URL, optional):</label>
+                    <input type="url" id="question-${questionNum}-more-info" class="more-info-link border border-gray-300 rounded-md p-2 w-full" value="${data.moreInfo || ''}">
+                </div>
+                <div class="form-group mb-4">
+                    <label for="question-${questionNum}-correct-feedback" class="block text-gray-700 mb-1">Feedback bei richtiger Antwort:</label>
+                    <textarea id="question-${questionNum}-correct-feedback" class="correct-feedback border border-gray-300 rounded-md p-2 w-full" rows="2">${data.correctFeedback || 'Richtig!'}</textarea>
+                </div>
+                <div class="form-group mb-4">
+                    <label for="question-${questionNum}-incorrect-feedback" class="block text-gray-700 mb-1">Feedback bei falscher Antwort:</label>
+                    <textarea id="question-${questionNum}-incorrect-feedback" class="incorrect-feedback border border-gray-300 rounded-md p-2 w-full" rows="2">${data.incorrectFeedback || 'Leider falsch.'}</textarea>
+                </div>
+                <button type="button" class="button bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 remove-question-btn mt-2">Frage entfernen</button>
+            `;
+            elements.questionsContainer.appendChild(questionDiv);
+
+            const optionsContainer = questionDiv.querySelector(`#options-container-${questionNum}`);
+            const addOptionBtn = questionDiv.querySelector('.add-option-btn');
+            const removeQuestionBtn = questionDiv.querySelector('.remove-question-btn');
+
+            addOptionBtn.addEventListener('click', () => addOption(optionsContainer, questionNum));
+            removeQuestionBtn.addEventListener('click', () => questionDiv.remove());
+
+            // Optionen befüllen, falls Daten vorhanden sind
+            if (data.options && data.options.length > 0) {
+                data.options.forEach((optionText, optIndex) => {
+                    addOption(optionsContainer, questionNum, optionText, data.answer === optIndex);
+                });
+            } else {
+                // Standardoptionen hinzufügen, falls keine Daten oder leere Optionen
+                addOption(optionsContainer, questionNum);
+                addOption(optionsContainer, questionNum);
+                addOption(optionsContainer, questionNum);
+                addOption(optionsContainer, questionNum);
+            }
+        }
+
+        function addOption(optionsContainer, questionNum, optionText = '', isCorrect = false) {
+            const optionItem = document.createElement('div');
+            optionItem.className = 'option-item flex items-center mb-2';
+            optionItem.innerHTML = `
+                <input type="radio" name="correct-option-${questionNum}" class="mr-2" ${isCorrect ? 'checked' : ''}>
+                <input type="text" value="${optionText}" placeholder="Antworttext" class="flex-grow border border-gray-300 rounded-md p-2">
+                <button type="button" class="button bg-red-500 text-white px-2 py-1 rounded-md text-sm hover:bg-red-600 ml-2 remove-option-btn">X</button>
+            `;
+            optionsContainer.appendChild(optionItem);
+
+            optionItem.querySelector('.remove-option-btn').addEventListener('click', () => optionItem.remove());
+        }
+
+        // --- Dynamische UI-Verwaltung (Lead-Formular-Details) ---
+        function toggleLeadFormDetails() {
+            elements.leadFormDetails.classList.toggle('hidden', !elements.leadFormEnabled.checked);
+        }
+
+        // --- Einbettungscode & Vorschau ---
+        function updateEmbedCodes() {
+            if (!currentQuizId) {
+                elements.embedCode.value = 'Speichern Sie das Quiz, um den Einbettungscode zu erhalten.';
+                elements.directLink.value = 'Speichern Sie das Quiz, um den Link zu erhalten.';
+                return;
+            }
+
+            const widgetBaseUrl = window.location.origin + window.location.pathname.replace('quiz-editor.html', 'quiz-widget.html');
+            const directLink = `${widgetBaseUrl}?quiz_id=${currentQuizId}`;
+            const embedCode = `<iframe src="${directLink}" style="width: 100%; height: 800px; border: none;" scrolling="no"></iframe>`;
+
+            elements.embedCode.value = embedCode;
+            elements.directLink.value = directLink;
+        }
+
+        function updatePreview() {
+            if (currentQuizId) {
+                const widgetBaseUrl = window.location.origin + window.location.pathname.replace('quiz-editor.html', 'quiz-widget.html');
+                elements.quizPreview.src = `${widgetBaseUrl}?quiz_id=${currentQuizId}`;
+            } else {
+                elements.quizPreview.src = 'about:blank';
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            element.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            showMessage('Code/Link kopiert!', 'success');
+        }
+
+        // --- Brand Farb-Presets ---
+        function applyBrandColors(brandValue) {
+            let primary = '';
+            let accent = '';
+            let optionLetter = '';
+            let buttonHover = '';
+
+            if (brandValue === 'lenzerheide') {
+                primary = '#FF0000';
+                accent = '#B30000';
+                optionLetter = '#FF0000';
+                buttonHover = '#FF0000';
+            } else if (brandValue === 'bikekingdom') {
+                primary = '#000000';
+                accent = '#333333';
+                optionLetter = '#000000';
+                buttonHover = '#000000';
+            }
+
+            elements.primaryColor.value = primary;
+            elements.accentColor.value = accent;
+            elements.optionLetterColor.value = optionLetter;
+            elements.buttonHoverColor.value = buttonHover;
+            elements.textColor.value = '#ffffff'; // Immer Weiß
+        }
+
+        // --- Event-Listener ---
+        elements.loadQuizzesBtn.addEventListener('click', loadQuizzes);
+        elements.createNewQuizBtn.addEventListener('click', createNewQuiz);
+        elements.saveQuizBtn.addEventListener('click', saveQuiz);
+        elements.deleteQuizBtn.addEventListener('click', async () => {
+            if (currentQuizId) {
+                const confirmDelete = await showCustomConfirm(`Möchten Sie das Quiz "${currentQuizId}" wirklich löschen? Dies kann NICHT rückgängig gemacht werden.`);
+                if (confirmDelete) {
+                    const success = await deleteQuiz(currentQuizId);
+                    if (success) {
+                        resetEditor();
+                        loadQuizzes();
+                    }
+                }
+            }
+        });
+        elements.resetEditorBtn.addEventListener('click', resetEditor);
+
+        elements.addQuestionBtn.addEventListener('click', () => addQuestion());
+        elements.leadFormEnabled.addEventListener('change', toggleLeadFormDetails);
+
+        function handleBrandChange() {
+            const selectedOption = elements.brandSelect.options[elements.brandSelect.selectedIndex];
+            // Die Felder logoImgSrc und textLogoFallbackContent wurden entfernt,
+            // daher greifen wir später in getQuizDataFromEditor direkt auf die Daten-Attribute zu.
+            applyBrandColors(elements.brandSelect.value); // Farb-Presets anwenden
+            updatePreview(); // Vorschau aktualisieren
+        }
+
+        elements.brandSelect.addEventListener('change', handleBrandChange);
+
+        // Event-Listener für dynamische Vorschau-Updates (passen nur noch embed codes an)
+        document.querySelectorAll('input:not([type="radio"]), textarea, select').forEach(input => {
+            // Ausgenommen sind die Farbfelder, da sie jetzt automatisch über handleBrandChange aktualisiert werden
+            if (input.id !== 'primaryColor' && input.id !== 'accentColor' &&
+                input.id !== 'optionLetterColor' && input.id !== 'buttonHoverColor' && input.id !== 'textColor') {
+                input.addEventListener('input', updateEmbedCodes);
+            }
+        });
+        elements.updatePreviewBtn.addEventListener('click', updatePreview);
+        elements.fullscreenPreviewBtn.addEventListener('click', () => {
+            if (currentQuizId) {
+                const widgetBaseUrl = window.location.origin + window.location.pathname.replace('quiz-editor.html', 'quiz-widget.html');
+                window.open(`${widgetBaseUrl}?quiz_id=${currentQuizId}`, '_blank');
+            } else {
+                showMessage('Kein Quiz geladen für Vollbild-Vorschau.', 'info');
+            }
+        });
+
+        elements.copyEmbedCodeBtn.addEventListener('click', () => copyToClipboard('embedCode'));
+        elements.copyDirectLinkBtn.addEventListener('click', () => copyToClipboard('directLink'));
+
+        // --- Initialisierung der App ---
+        function initializeApp() {
+            console.log("initializeApp called.");
+            loadQuizzes(); // Versuche, Quizze zu laden, sobald die App startet
+            
+            // Füge eine Standardfrage hinzu, wenn der Container leer ist
+            if (elements.questionsContainer.children.length === 0) {
+                addQuestion(1);
+            }
+            // Setze Initialfarben und Logo basierend auf der Standard-Marke
+            handleBrandChange();
+
+            elements.quizEditorSection.classList.remove('hidden'); 
+        }
+
+        // App starten
+        initializeApp();
+
+    </script>
+</body>
+</html>

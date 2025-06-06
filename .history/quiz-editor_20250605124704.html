@@ -1,0 +1,543 @@
+// Global Helper Function to add CORS headers
+// This function ensures that your Apps Script responses are accessible from any origin (e.g., your local development server or hosted website)
+function addCorsHeaders(output) {
+  Logger.log("Adding CORS headers to output");
+  return output
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*', // Allows requests from any origin. Crucial for CORS.
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', // Specifies allowed HTTP methods.
+      'Access-Control-Allow-Headers': 'Content-Type', // Specifies allowed headers in the request.
+      'Access-Control-Max-Age': '86400' // Caches preflight response for 24 hours, reducing OPTIONS requests.
+    });
+}
+
+// --- Handle GET requests ---
+// Used primarily for listing quizzes and loading specific quiz data.
+function doGet(e) {
+  Logger.log("doGet Anfrage empfangen: " + JSON.stringify(e)); // Log the entire 'e' object for debugging
+  var responseData = {};
+
+  try {
+    // Check if 'e' and 'e.parameter' are defined before accessing properties
+    if (!e || !e.parameter) {
+      responseData = { success: false, error: "Fehler: Die Anfrage enthält keine gültigen Parameter. Dies tritt oft auf, wenn die Funktion direkt aus dem Apps Script-Editor ausgeführt wird." };
+    } else {
+      var action = e.parameter.action;
+      var quizId = e.parameter.quiz_id;
+      var spreadsheetId = e.parameter.spreadsheet_id;
+
+      if (!spreadsheetId) {
+        responseData = { success: false, error: "Fehler: spreadsheet_id fehlt in der Anfrage." };
+      } else {
+        if (action === 'listQuizzes') {
+          responseData = listAllQuizzes(spreadsheetId);
+        } else if (quizId) {
+          responseData = getQuizData(quizId, spreadsheetId);
+        } else {
+          responseData = { success: false, error: "Keine Aktion oder quiz_id für GET-Anfrage angegeben." };
+        }
+      }
+    }
+  } catch (error) {
+    Logger.log("Fehler in doGet: " + error.message + " Stack: " + error.stack);
+    responseData = { success: false, error: "Interner Serverfehler in doGet: " + error.message, stack: error.stack };
+  }
+
+  const output = ContentService.createTextOutput(JSON.stringify(responseData))
+    .setMimeType(ContentService.MimeType.JSON);
+  return addCorsHeaders(output);
+}
+
+// --- Handle POST requests ---
+// Used for setting up the sheet, saving quizzes, deleting quizzes, and submitting lead forms.
+function doPost(e) {
+  Logger.log("doPost Anfrage empfangen");
+  var requestData;
+  var response = { success: false, error: "Unbekannte Aktion." };
+
+  try {
+    requestData = JSON.parse(e.postData.contents);
+    Logger.log("Request Data: " + JSON.stringify(requestData));
+  } catch (err) {
+    Logger.log("Fehler beim Parsen des JSON: " + err.message);
+    const errorOutput = ContentService.createTextOutput(JSON.stringify({ success: false, error: "Ungültiges JSON im Anfragekörper: " + err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+    return addCorsHeaders(errorOutput);
+  }
+
+  var action = requestData.action;
+  var spreadsheetId = requestData.spreadsheet_id;
+
+  // Initial check for spreadsheet_id for all actions except setupSheet
+  if (!spreadsheetId && action !== 'setupSheet') {
+      response = { success: false, error: "Fehler: spreadsheet_id fehlt in der Anfrage für Aktion: " + action };
+      const finalOutput = ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+      return addCorsHeaders(finalOutput);
+  }
+
+  try {
+    switch (action) {
+      case 'setupSheet':
+        response = setupSpreadsheet(requestData.sheetName, requestData.existingSheetId);
+        break;
+      case 'saveQuiz':
+        response = saveQuizData(requestData); // requestData should contain quizId, config, questions, spreadsheet_id
+        break;
+      case 'deleteQuiz':
+        response = deleteQuizData(requestData.quizId, spreadsheetId);
+        break;
+      case 'submitLeadForm':
+        response = submitLeadFormData(requestData.quizId, spreadsheetId, requestData.formData);
+        break;
+      default:
+        Logger.log(`Unbekannte Aktion empfangen: ${action}. Volle AnfrageDaten: ` + JSON.stringify(requestData));
+        response = { success: false, error: "Keine Aktion angegeben oder unbekannte Aktion: " + action };
+        break;
+    }
+  } catch (error) {
+    Logger.log("Gesamtfehler in doPost: " + error.message + " Stack: " + error.stack);
+    response = { success: false, error: "Interner Serverfehler in doPost: " + error.message, stack: error.stack };
+  }
+
+  Logger.log('Finale Antwort von doPost: ' + JSON.stringify(response));
+  const finalOutput = ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+  return addCorsHeaders(finalOutput);
+}
+
+// --- Handle OPTIONS requests for CORS Preflight ---
+// This function is crucial for handling the "preflight" requests made by browsers
+// before sending actual POST/PUT/DELETE requests across different origins.
+function doOptions(e) {
+  Logger.log("doOptions Anfrage empfangen: " + JSON.stringify(e));
+  // For OPTIONS requests, only the headers are important.
+  // The content of the response should be empty or minimal.
+  const output = ContentService.createTextOutput();
+  return addCorsHeaders(output); // Only add CORS headers, do not set MIME type here.
+}
+
+
+// ###########################################################################################################
+// ###########################################################################################################
+// DEINE QUIZ-MANAGEMENT-FUNKTIONEN (Müssen implementiert werden)
+// Diese Funktionen interagieren mit deinem Google Sheet.
+// Stelle sicher, dass sie die erwarteten Daten zurückgeben.
+// ###########################################################################################################
+// ###########################################################################################################
+
+
+/**
+ * Setzt ein neues Google Sheet auf oder verwendet ein bestehendes.
+ * Erstellt die notwendigen Blätter (z.B. QuizConfig, QuizQuestions, LeadData).
+ * @param {string} sheetName Der Name des Sheets, das erstellt oder verwendet werden soll.
+ * @param {string} [existingSheetId] Optional: Die ID eines bestehenden Google Sheets.
+ * @returns {object} Ein Objekt mit success-Status, spreadsheetId und optional sheetUrl.
+ */
+function setupSpreadsheet(sheetName, existingSheetId) {
+  Logger.log("setupSpreadsheet aufgerufen mit sheetName: " + sheetName + ", existingSheetId: " + existingSheetId);
+  try {
+    let spreadsheet;
+    if (existingSheetId) {
+      try {
+        spreadsheet = SpreadsheetApp.openById(existingSheetId);
+        Logger.log("Bestehendes Sheet gefunden: " + spreadsheet.getName());
+      } catch (e) {
+        throw new Error("Fehler beim Öffnen des bestehenden Sheets: " + e.message + ". Möglicherweise falsche ID oder keine Berechtigung.");
+      }
+    } else {
+      spreadsheet = SpreadsheetApp.create(sheetName || "QuizDatenbank");
+      Logger.log("Neues Sheet erstellt: " + spreadsheet.getName() + " ID: " + spreadsheet.getId());
+    }
+
+    const sheetsToCreate = ["QuizConfig", "QuizQuestions", "LeadData"];
+    sheetsToCreate.forEach(name => {
+      let sheet = spreadsheet.getSheetByName(name);
+      if (!sheet) {
+        sheet = spreadsheet.insertSheet(name);
+        Logger.log(`Blatt '${name}' erstellt.`);
+        // Setzt Header für neue Blätter
+        if (name === "QuizConfig") {
+          sheet.getRange(1, 1, 1, 3).setValues([["quizId", "configJson", "lastUpdated"]]);
+        } else if (name === "QuizQuestions") {
+          sheet.getRange(1, 1, 1, 7).setValues([["quizId", "questionIndex", "question", "optionsJson", "correctAnswerIndex", "correctFeedback", "incorrectFeedback", "moreInfoLink"]]);
+        } else if (name === "LeadData") {
+          sheet.getRange(1, 1, 1, 3).setValues([["quizId", "timestamp", "formDataJson"]]);
+        }
+      } else {
+        Logger.log(`Blatt '${name}' existiert bereits.`);
+      }
+    });
+
+    // Entferne standardmäßig erstelltes "Tabelle1" oder "Sheet1", wenn es leer ist
+    const defaultSheet = spreadsheet.getSheetByName("Tabelle1") || spreadsheet.getSheetByName("Sheet1");
+    if (defaultSheet && defaultSheet.getLastRow() === 0 && defaultSheet.getLastColumn() === 0) {
+        spreadsheet.deleteSheet(defaultSheet);
+        Logger.log("Leeres Standardblatt 'Tabelle1'/'Sheet1' gelöscht.");
+    }
+
+
+    // Wichtig: Berechtigungen für das Skript überprüfen.
+    // Das Skript muss berechtigt sein, auf die Tabellenkalkulation zuzugreifen.
+    // Beim ersten Ausführen als Web App wirst du zur Autorisierung aufgefordert.
+
+    return { success: true, spreadsheetId: spreadsheet.getId(), sheetUrl: spreadsheet.getUrl() };
+  } catch (error) {
+    Logger.log("Fehler in setupSpreadsheet: " + error.message);
+    return { success: false, error: "Fehler beim Einrichten des Sheets: " + error.message };
+  }
+}
+
+/**
+ * Ruft alle Quiz-Titel und IDs aus dem Google Sheet ab.
+ * @param {string} spreadsheetId Die ID des Google Sheets.
+ * @returns {object} Ein Objekt mit einer Liste von Quizzen (quizId, quizTitle).
+ */
+function listAllQuizzes(spreadsheetId) {
+  Logger.log("listAllQuizzes aufgerufen für Sheet ID: " + spreadsheetId);
+  try {
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    const configSheet = spreadsheet.getSheetByName("QuizConfig");
+    if (!configSheet) {
+      return { quizzes: [], message: "QuizConfig Blatt nicht gefunden." };
+    }
+
+    const data = configSheet.getDataRange().getValues();
+    if (data.length <= 1) { // Nur Header oder leer
+      return { quizzes: [] };
+    }
+
+    const headers = data[0];
+    const quizIdCol = headers.indexOf("quizId");
+    const configJsonCol = headers.indexOf("configJson");
+
+    if (quizIdCol === -1 || configJsonCol === -1) {
+        Logger.log("Erwartete Spalten 'quizId' oder 'configJson' in QuizConfig nicht gefunden.");
+        return { success: false, error: "Fehlende Spalten in QuizConfig." };
+    }
+
+    const quizzes = data.slice(1).map(row => {
+      try {
+        const config = JSON.parse(row[configJsonCol]);
+        return {
+          quizId: row[quizIdCol],
+          quizTitle: config.quizTitle || 'Unbenanntes Quiz'
+        };
+      } catch (e) {
+        Logger.log("Fehler beim Parsen von configJson für QuizId: " + row[quizIdCol] + " - " + e.message);
+        return { quizId: row[quizIdCol], quizTitle: 'Unbenanntes Quiz (Fehlerhaft)' };
+      }
+    });
+
+    return { quizzes: quizzes };
+  } catch (error) {
+    Logger.log("Fehler in listAllQuizzes: " + error.message + " Stack: " + error.stack);
+    return { success: false, error: "Fehler beim Auflisten der Quizze: " + error.message };
+  }
+}
+
+/**
+ * Ruft die Konfigurationsdaten und Fragen für ein bestimmtes Quiz ab.
+ * @param {string} quizId Die ID des abzurufenden Quiz.
+ * @param {string} spreadsheetId Die ID des Google Sheets.
+ * @returns {object} Ein Objekt mit Quiz-Konfiguration und Fragen.
+ */
+function getQuizData(quizId, spreadsheetId) {
+  Logger.log("getQuizData aufgerufen für Quiz ID: " + quizId + " in Sheet ID: " + spreadsheetId);
+  try {
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    const configSheet = spreadsheet.getSheetByName("QuizConfig");
+    const questionsSheet = spreadsheet.getSheetByName("QuizQuestions");
+
+    if (!configSheet || !questionsSheet) {
+      throw new Error("Benötigte Blätter (QuizConfig oder QuizQuestions) nicht gefunden.");
+    }
+
+    // Config laden
+    const configData = configSheet.getDataRange().getValues();
+    const configHeaders = configData[0];
+    const configQuizIdCol = configHeaders.indexOf("quizId");
+    const configJsonCol = configHeaders.indexOf("configJson");
+
+    if (configQuizIdCol === -1 || configJsonCol === -1) {
+        throw new Error("Fehlende Spalten 'quizId' oder 'configJson' in QuizConfig.");
+    }
+
+    let config = null;
+    for (let i = 1; i < configData.length; i++) {
+      if (configData[i][configQuizIdCol] === quizId) {
+        try {
+          config = JSON.parse(configData[i][configJsonCol]);
+          break;
+        } catch (e) {
+          throw new Error("Fehler beim Parsen der Konfiguration für QuizId " + quizId + ": " + e.message);
+        }
+      }
+    }
+
+    if (!config) {
+      return { success: false, error: "Quiz mit ID " + quizId + " nicht gefunden." };
+    }
+
+    // Fragen laden
+    const questionsData = questionsSheet.getDataRange().getValues();
+    const questionHeaders = questionsData[0];
+    const qQuizIdCol = questionHeaders.indexOf("quizId");
+    const qQuestionIndexCol = questionHeaders.indexOf("questionIndex");
+    const qQuestionCol = questionHeaders.indexOf("question");
+    const qOptionsJsonCol = questionHeaders.indexOf("optionsJson");
+    const qCorrectAnswerIndexCol = questionHeaders.indexOf("correctAnswerIndex");
+    const qCorrectFeedbackCol = questionHeaders.indexOf("correctFeedback");
+    const qIncorrectFeedbackCol = questionHeaders.indexOf("incorrectFeedback");
+    const qMoreInfoLinkCol = questionHeaders.indexOf("moreInfoLink");
+
+    if ([qQuizIdCol, qQuestionIndexCol, qQuestionCol, qOptionsJsonCol, qCorrectAnswerIndexCol, qCorrectFeedbackCol, qIncorrectFeedbackCol, qMoreInfoLinkCol].some(col => col === -1)) {
+        throw new Error("Fehlende Spalten in QuizQuestions.");
+    }
+
+    const quizData = [];
+    for (let i = 1; i < questionsData.length; i++) {
+      if (questionsData[i][qQuizIdCol] === quizId) {
+        try {
+          const options = JSON.parse(questionsData[i][qOptionsJsonCol]);
+          quizData.push({
+            question: questionsData[i][qQuestionCol],
+            options: options,
+            answer: questionsData[i][qCorrectAnswerIndexCol],
+            correctFeedback: questionsData[i][qCorrectFeedbackCol],
+            incorrectFeedback: questionsData[i][qIncorrectFeedbackCol],
+            moreInfo: questionsData[i][qMoreInfoLinkCol]
+          });
+        } catch (e) {
+          Logger.log("Fehler beim Parsen der Frage für QuizId " + quizId + ", Zeile " + (i + 1) + ": " + e.message);
+        }
+      }
+    }
+    // Sortiere Fragen nach Index, falls nicht bereits sortiert
+    quizData.sort((a, b) => a.questionIndex - b.questionIndex);
+
+    return { success: true, config: config, quizData: quizData };
+  } catch (error) {
+    Logger.log("Fehler in getQuizData: " + error.message + " Stack: " + error.stack);
+    return { success: false, error: "Fehler beim Abrufen der Quizdaten: " + error.message };
+  }
+}
+
+/**
+ * Speichert Quiz-Konfigurationsdaten und Fragen im Google Sheet.
+ * Aktualisiert vorhandene oder fügt neue Einträge hinzu.
+ * @param {object} data Das gesamte Quiz-Datenobjekt (quizId, config, questions, spreadsheet_id).
+ * @returns {object} Ein Objekt mit success-Status.
+ */
+function saveQuizData(data) {
+  Logger.log("saveQuizData aufgerufen für Quiz ID: " + data.quizId + " in Sheet ID: " + data.spreadsheet_id);
+  try {
+    const spreadsheet = SpreadsheetApp.openById(data.spreadsheet_id);
+    const configSheet = spreadsheet.getSheetByName("QuizConfig");
+    const questionsSheet = spreadsheet.getSheetByName("QuizQuestions");
+
+    if (!configSheet || !questionsSheet) {
+      throw new Error("Benötigte Blätter (QuizConfig oder QuizQuestions) nicht gefunden.");
+    }
+
+    const quizId = data.quizId;
+    const config = data.config;
+    const questions = data.questions;
+    const timestamp = new Date().toISOString();
+
+    // 1. QuizConfig speichern/aktualisieren
+    const configData = configSheet.getDataRange().getValues();
+    const configHeaders = configData[0];
+    const quizIdCol = configHeaders.indexOf("quizId");
+    const configJsonCol = configHeaders.indexOf("configJson");
+    const lastUpdatedCol = configHeaders.indexOf("lastUpdated");
+
+    if (quizIdCol === -1 || configJsonCol === -1 || lastUpdatedCol === -1) {
+        throw new Error("Fehlende Spalten in QuizConfig.");
+    }
+
+    let configFound = false;
+    for (let i = 1; i < configData.length; i++) {
+      if (configData[i][quizIdCol] === quizId) {
+        configSheet.getRange(i + 1, configJsonCol + 1).setValue(JSON.stringify(config));
+        configSheet.getRange(i + 1, lastUpdatedCol + 1).setValue(timestamp);
+        configFound = true;
+        Logger.log(`Konfiguration für Quiz ${quizId} aktualisiert.`);
+        break;
+      }
+    }
+    if (!configFound) {
+      configSheet.appendRow([quizId, JSON.stringify(config), timestamp]);
+      Logger.log(`Neue Konfiguration für Quiz ${quizId} hinzugefügt.`);
+    }
+
+    // 2. QuizQuestions speichern/aktualisieren
+    // Zuerst alle vorhandenen Fragen für dieses Quiz löschen
+    const allQuestionsData = questionsSheet.getDataRange().getValues();
+    const qHeaders = allQuestionsData[0];
+    const qQuizIdCol = qHeaders.indexOf("quizId");
+
+    if (qQuizIdCol === -1) {
+        throw new Error("Fehlende 'quizId' Spalte in QuizQuestions.");
+    }
+
+    let rowsToDelete = [];
+    for (let i = 1; i < allQuestionsData.length; i++) {
+      if (allQuestionsData[i][qQuizIdCol] === quizId) {
+        rowsToDelete.push(i + 1); // Zeilennummer in Spreadsheet
+      }
+    }
+
+    // Löschen in umgekehrter Reihenfolge, um Indexverschiebungen zu vermeiden
+    for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+      questionsSheet.deleteRow(rowsToDelete[i]);
+      Logger.log(`Zeile ${rowsToDelete[i]} für Quiz ${quizId} gelöscht.`);
+    }
+
+    // Dann die neuen Fragen hinzufügen
+    questions.forEach((q, index) => {
+      const row = [
+        quizId,
+        index, // questionIndex
+        q.question,
+        JSON.stringify(q.options),
+        q.answer,
+        q.correctFeedback,
+        q.incorrectFeedback,
+        q.moreInfo
+      ];
+      questionsSheet.appendRow(row);
+    });
+    Logger.log(`${questions.length} Fragen für Quiz ${quizId} gespeichert.`);
+
+    return { success: true, message: `Quiz '${quizId}' erfolgreich gespeichert.` };
+  } catch (error) {
+    Logger.log("Fehler in saveQuizData: " + error.message + " Stack: " + error.stack);
+    return { success: false, error: "Fehler beim Speichern des Quiz: " + error.message };
+  }
+}
+
+/**
+ * Löscht ein Quiz und seine Fragen aus dem Google Sheet.
+ * @param {string} deleteQuizId Die ID des zu löschenden Quiz.
+ * @param {string} spreadsheetId Die ID des Google Sheets.
+ * @returns {object} Ein Objekt mit success-Status.
+ */
+function deleteQuizData(deleteQuizId, spreadsheetId) {
+  Logger.log("deleteQuizData aufgerufen für Quiz ID: " + deleteQuizId + " in Sheet ID: " + spreadsheetId);
+  try {
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    const configSheet = spreadsheet.getSheetByName("QuizConfig");
+    const questionsSheet = spreadsheet.getSheetByName("QuizQuestions");
+    const leadDataSheet = spreadsheet.getSheetByName("LeadData");
+
+    if (!configSheet) {
+      throw new Error("QuizConfig Blatt nicht gefunden.");
+    }
+
+    // 1. Aus QuizConfig löschen
+    const configData = configSheet.getDataRange().getValues();
+    const configHeaders = configData[0];
+    const quizIdColConfig = configHeaders.indexOf("quizId");
+    if (quizIdColConfig === -1) {
+        throw new Error("'quizId' Spalte nicht in QuizConfig gefunden.");
+    }
+
+    let configRowsToDelete = [];
+    for (let i = 1; i < configData.length; i++) {
+      if (configData[i][quizIdColConfig] === deleteQuizId) {
+        configRowsToDelete.push(i + 1);
+      }
+    }
+    for (let i = configRowsToDelete.length - 1; i >= 0; i--) {
+      configSheet.deleteRow(configRowsToDelete[i]);
+      Logger.log(`Konfigurationszeile ${configRowsToDelete[i]} für Quiz ${deleteQuizId} gelöscht.`);
+    }
+
+    // 2. Aus QuizQuestions löschen
+    if (questionsSheet) {
+        const questionsData = questionsSheet.getDataRange().getValues();
+        const qHeaders = questionsData[0];
+        const quizIdColQuestions = qHeaders.indexOf("quizId");
+        if (quizIdColQuestions !== -1) {
+            let questionRowsToDelete = [];
+            for (let i = 1; i < questionsData.length; i++) {
+                if (questionsData[i][quizIdColQuestions] === deleteQuizId) {
+                    questionRowsToDelete.push(i + 1);
+                }
+            }
+            for (let i = questionRowsToDelete.length - 1; i >= 0; i--) {
+                questionsSheet.deleteRow(questionRowsToDelete[i]);
+                Logger.log(`Fragenzeile ${questionRowsToDelete[i]} für Quiz ${deleteQuizId} gelöscht.`);
+            }
+        } else {
+            Logger.log("'quizId' Spalte nicht in QuizQuestions gefunden für Löschung.");
+        }
+    } else {
+        Logger.log("QuizQuestions Blatt nicht gefunden für Löschung.");
+    }
+
+    // 3. Aus LeadData löschen (optional, aber empfohlen)
+    if (leadDataSheet) {
+        const leadData = leadDataSheet.getDataRange().getValues();
+        const lHeaders = leadData[0];
+        const quizIdColLeadData = lHeaders.indexOf("quizId");
+        if (quizIdColLeadData !== -1) {
+            let leadRowsToDelete = [];
+            for (let i = 1; i < leadData.length; i++) {
+                if (leadData[i][quizIdColLeadData] === deleteQuizId) {
+                    leadRowsToDelete.push(i + 1);
+                }
+            }
+            for (let i = leadRowsToDelete.length - 1; i >= 0; i--) {
+                leadDataSheet.deleteRow(leadRowsToDelete[i]);
+                Logger.log(`Lead-Datenzeile ${leadRowsToDelete[i]} für Quiz ${deleteQuizId} gelöscht.`);
+            }
+        } else {
+            Logger.log("'quizId' Spalte nicht in LeadData gefunden für Löschung.");
+        }
+    } else {
+        Logger.log("LeadData Blatt nicht gefunden für Löschung.");
+    }
+
+
+    return { success: true, message: `Quiz '${deleteQuizId}' und seine Daten erfolgreich gelöscht.` };
+  } catch (error) {
+    Logger.log("Fehler in deleteQuizData: " + error.message + " Stack: " + error.stack);
+    return { success: false, error: "Fehler beim Löschen des Quiz: " + error.message };
+  }
+}
+
+/**
+ * Speichert Lead-Formular-Daten in einem dedizierten Blatt.
+ * @param {string} quizId Die ID des Quiz, zu dem die Lead-Daten gehören.
+ * @param {string} spreadsheetId Die ID des Google Sheets.
+ * @param {object} formData Das Formular-Datenobjekt (Schlüssel-Wert-Paare der Felder).
+ * @returns {object} Ein Objekt mit success-Status.
+ */
+function submitLeadFormData(quizId, spreadsheetId, formData) {
+  Logger.log("submitLeadFormData aufgerufen für Quiz ID: " + quizId + " in Sheet ID: " + spreadsheetId);
+  try {
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    const leadDataSheet = spreadsheet.getSheetByName("LeadData");
+
+    if (!leadDataSheet) {
+      throw new Error("LeadData Blatt nicht gefunden. Bitte führen Sie 'setupSheet' aus.");
+    }
+
+    const timestamp = new Date().toISOString();
+    const row = [
+      quizId,
+      timestamp,
+      JSON.stringify(formData) // Speichert die Formular-Daten als JSON-String
+    ];
+
+    leadDataSheet.appendRow(row);
+    Logger.log(`Lead-Daten für Quiz ${quizId} erfolgreich gespeichert.`);
+
+    return { success: true, message: `Lead-Daten für Quiz '${quizId}' erfolgreich übermittelt.` };
+  } catch (error) {
+    Logger.log("Fehler in submitLeadFormData: " + error.message + " Stack: " + error.stack);
+    return { success: false, error: "Fehler beim Speichern der Lead-Daten: " + error.message };
+  }
+}
+
+const APPS_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzVd6UrVPb6e0EgZCrXuIIzky0zgZuTf9575ZOgZ0-iz23V4roYFmVUo7nBLErzWkjy/exec";

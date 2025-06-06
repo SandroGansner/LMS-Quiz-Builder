@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktives Quiz</title>
+    <style>
+        /* CSS Variables for dynamic styling */
+        :root {
+            --quiz-container-bg-color: #f2213b; /* Default Lenzerheide red */
+            --text-color: #333; /* Default text color */
+            --lead-form-bg-color: #fff; /* Default lead form background color */
+            --lead-form-text-color: #333; /* Default lead form text color */
+            --thank-you-bg-color: #fff; /* Default thank you message background color */
+            --thank-you-text-color: #666; /* Default thank you message text color */
+            --primary-color: #f2213b; /* Fallback for primary color from config */
+            --accent-color: #ffffff; /* Fallback for accent color from config */
+            --option-letter-color: #f2213b; /* Fallback for option letter color from config */
+            --button-hover-color: #a81c2f; /* Fallback for button hover color from config */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex; /* Changed to flex for centering */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure body takes full viewport height for centering */
+            margin: 0;
+            background-color: transparent !important; /* Managed by JS for iframe */
+            color: var(--text-color, #333);
+            transition: background-color 0.3s ease;
+            padding: 20px; /* Add some padding for smaller screens */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        .quiz-container {
+            background-color: var(--quiz-container-bg-color);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+            margin: auto; /* For centering */
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .quiz-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .quiz-logo {
+            max-width: 172.5px;
+            height: auto;
+            display: block;
+            margin: 0 auto 15px;
+        }
+        .quiz-title {
+            color: #fff;
+            font-size: 1.8em;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .question-text {
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            color: var(--text-color); /* Use text-color from config */
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background-color: #e9ecef; /* Light background for question box */
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .options-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .option-item {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            text-align: left;
+        }
+        .option-item:hover {
+            background-color: #e2e6ea;
+            border-color: #b3d7ff;
+            transform: translateY(-2px);
+        }
+        .option-item.selected {
+            background-color: var(--accent-color, #d1ecf1);
+            border-color: var(--accent-color, #bee5eb);
+            color: var(--primary-color); /* Text color of selected option */
+        }
+        .option-item.correct {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+            font-weight: bold;
+        }
+        .option-item.incorrect {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+            font-weight: bold;
+        }
+        .option-letter {
+            font-weight: bold;
+            margin-right: 15px;
+            color: var(--option-letter-color, #007bff);
+            min-width: 20px;
+            text-align: right;
+        }
+        .buttons-container {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+        }
+        button {
+            background-color: transparent; /* Changed to transparent */
+            color: #fff;
+            padding: 12px 25px;
+            border: 2px solid white; /* Added white border */
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: var(--button-hover-color, #0056b3);
+            transform: translateY(-1px);
+            border-color: var(--button-hover-color, #0056b3); /* Border color on hover */
+        }
+        button:disabled {
+            background-color: #cccccc !important; /* Important to override primary color */
+            color: #666 !important;
+            border-color: #cccccc !important;
+            cursor: not-allowed;
+        }
+        .feedback-area {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.5s ease, max-height 0.5s ease;
+        }
+        .feedback-area.show {
+            opacity: 1;
+            max-height: 150px;
+        }
+        .feedback-area.correct-feedback {
+            background-color: #d4edda;
+            border: 1px solid #28a745;
+            color: #155724;
+        }
+        .feedback-area.incorrect-feedback {
+            background-color: #f8d7da;
+            border: 1px solid #dc3545;
+            color: #721c24;
+        }
+        .feedback-text {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .more-info-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: var(--accent-color, #007bff);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .more-info-link:hover {
+            text-decoration: underline;
+        }
+        .quiz-results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: var(--quiz-container-bg-color); /* Use quiz container background */
+            border: 1px solid var(--accent-color); /* Use accent color for border */
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+            color: var(--text-color); /* Use text color from config */
+        }
+        .quiz-results h2 {
+            color: #fff;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+        .score-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        .restart-button {
+            background-color: #6c757d;
+            border-color: #6c757d; /* Match border to background */
+        }
+        .restart-button:hover {
+            background-color: #5a6268;
+            border-color: #5a6268;
+        }
+        /* Custom message box styles */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .message-box.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* Lead Capture Form */
+        .lead-capture-form {
+            background-color: var(--lead-form-bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            margin-top: 20px;
+            display: none;
+            color: var(--lead-form-text-color);
+            text-align: left; /* Align form content left */
+        }
+        .lead-capture-form h2 {
+            color: var(--lead-form-text-color); /* Use lead form text color */
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .lead-capture-form p {
+            color: var(--lead-form-text-color); /* Use lead form text color */
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .lead-capture-form .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .lead-capture-form label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .lead-capture-form input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box; /* Ensure padding doesn't increase total width */
+        }
+        .lead-capture-form button {
+            background-color: var(--primary-color); /* Use primary color from config */
+            color: white;
+            padding: 10px 20px;
+            border: none; /* No border for form submit button */
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            width: auto; /* Allow button to size itself */
+            margin: 20px auto 0; /* Center button */
+            display: block; /* Make it a block element to center */
+        }
+        .lead-capture-form button:hover {
+            background-color: var(--button-hover-color); /* Use hover color from config */
+        }
+        .thank-you-message {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            background-color: var(--thank-you-bg-color);
+            color: var(--thank-you-text-color);
+        }
+        .thank-you-message h2 {
+            color: #28a745; /* Still green for success */
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .thank-you-message p {
+            color: var(--thank-you-text-color);
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <img id="quizLogo" src="" alt="Quiz Logo" class="quiz-logo" style="display: none;">
+            <p id="textLogoFallback" style="font-size: 2em; font-weight: bold; display: none; color: #fff;"></p>
+            <h1 class="quiz-title" id="quizOverallTitle"></h1>
+        </div>
+
+        <div id="quiz-area">
+            <p class="question-text" id="question-text"></p>
+            <ul class="options-list" id="options-list">
+            </ul>
+            <div class="feedback-area" id="feedback-area">
+                <p class="feedback-text" id="feedback-text"></p>
+                <a href="#" id="more-info-link" class="more-info-link" target="_blank" style="display: none;">Mehr erfahren</a>
+            </div>
+            <div class="buttons-container">
+                <button id="submit-button" disabled>Antwort prüfen</button>
+            </div>
+        </div>
+
+        <div id="results-area" class="quiz-results" style="display: none;">
+            <h2>Quiz beendet!</h2>
+            <p class="score-text">Du hast <span id="correct-answers-count">0</span> von <span id="total-questions-count">0</span> Fragen richtig beantwortet.</p>
+            <button class="restart-button" id="restartQuizBtn">Neues Quiz starten</button>
+        </div>
+    </div>
+
+    <div id="lead-capture-form" class="lead-capture-form" style="display: none;">
+        <h2 id="leadFormTitle"></h2>
+        <p id="leadFormDescription"></p>
+        <form id="leadForm"></form>
+    </div>
+
+    <div id="thank-you-message" class="thank-you-message" style="display: none;">
+        <h2 id="thankYouMessageTitle"></h2>
+        <p id="thankYouMessageDescription"></p>
+        <button class="restart-button" id="restartQuizFromThankYouBtn">Neues Quiz starten</button>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        let quizData = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let config = {};
+        let selectedOptionElement = null; // To keep track of the currently selected option HTML element
+
+        const quizContainer = document.querySelector('.quiz-container');
+        const quizOverallTitle = document.getElementById('quizOverallTitle');
+        const quizLogo = document.getElementById('quizLogo');
+        const textLogoFallback = document.getElementById('textLogoFallback');
+        const questionText = document.getElementById('question-text');
+        const optionsList = document.getElementById('options-list');
+        const submitButton = document.getElementById('submit-button');
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackText = document.getElementById('feedback-text');
+        const moreInfoLink = document.getElementById('more-info-link');
+        const resultsArea = document.getElementById('results-area');
+        const correctAnswersCount = document.getElementById('correct-answers-count');
+        const totalQuestionsCount = document.getElementById('total-questions-count');
+        const quizArea = document.getElementById('quiz-area');
+        const restartQuizBtn = document.getElementById('restartQuizBtn');
+        const messageBox = document.getElementById('messageBox');
+        const leadCaptureForm = document.getElementById('lead-capture-form');
+        const leadFormTitleElement = document.getElementById('leadFormTitle');
+        const leadFormDescriptionElement = document.getElementById('leadFormDescription');
+        const leadFormElement = document.getElementById('leadForm'); // The form element itself
+        const thankYouMessage = document.getElementById('thank-you-message');
+        const thankYouMessageTitleElement = document.getElementById('thankYouMessageTitle');
+        const thankYouMessageDescriptionElement = document.getElementById('thankYouMessageDescription');
+        const restartQuizFromThankYouBtn = document.getElementById('restartQuizFromThankYouBtn');
+
+
+        /**
+         * Displays a temporary message to the user.
+         * @param {string} message - The message to display.
+         * @param {number} duration - The duration in milliseconds for which the message should be visible.
+         */
+        function showMessage(message, duration = 2000) {
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
+        /**
+         * Parses the quiz configuration from the URL.
+         * @returns {object} The parsed configuration object.
+         */
+        function getConfigFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedConfig = urlParams.get('config');
+            if (encodedConfig) {
+                try {
+                    const decoded = atob(encodedConfig); // Decode Base64
+                    return JSON.parse(decoded);
+                } catch (e) {
+                    console.error("Fehler beim Dekodieren oder Parsen der Quiz-Konfiguration:", e);
+                    showMessage("Fehler beim Laden des Quiz. Konfiguration ist ungültig.");
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Applies the loaded configuration to the quiz display and styling.
+         */
+        function applyConfig() {
+            if (!config) {
+                console.warn("Keine Konfiguration geladen. Verwende Standardwerte.");
+                // Fallback to some defaults if config is empty
+                document.documentElement.style.setProperty('--primary-color', '#f2213b');
+                document.documentElement.style.setProperty('--accent-color', '#ffffff');
+                document.documentElement.style.setProperty('--option-letter-color', '#f2213b');
+                document.documentElement.style.setProperty('--button-hover-color', '#a81c2f');
+                document.documentElement.style.setProperty('--quiz-container-bg-color', '#f2213b');
+                document.documentElement.style.setProperty('--text-color', '#333');
+                document.documentElement.style.setProperty('--lead-form-bg-color', '#fff');
+                document.documentElement.style.setProperty('--lead-form-text-color', '#333');
+                document.documentElement.style.setProperty('--thank-you-bg-color', '#fff');
+                document.documentElement.style.setProperty('--thank-you-text-color', '#666');
+                quizOverallTitle.textContent = "Standard Quiz";
+                quizLogo.style.display = 'none';
+                textLogoFallback.style.display = 'block';
+                textLogoFallback.textContent = "Quiz";
+                quizData = [];
+                return;
+            }
+
+            quizData = config.quizData || [];
+            quizOverallTitle.textContent = config.quizTitle || "Unbenanntes Quiz";
+
+            if (config.logoImgSrc) {
+                quizLogo.onload = () => {
+                    quizLogo.style.display = 'block';
+                    textLogoFallback.style.display = 'none';
+                    sendQuizHeight(); // Adjust height after logo loads
+                };
+                quizLogo.onerror = () => {
+                    console.error("Fehler beim Laden des Logos:", config.logoImgSrc);
+                    quizLogo.style.display = 'none';
+                    textLogoFallback.style.display = 'block';
+                    textLogoFallback.textContent = config.textLogoFallbackContent || "Quiz";
+                    sendQuizHeight(); // Adjust height even if logo fails
+                };
+                quizLogo.src = config.logoImgSrc;
+                quizLogo.style.display = 'none'; // Initially hide, show on load
+            } else if (config.textLogoFallbackContent) {
+                textLogoFallback.textContent = config.textLogoFallbackContent;
+                textLogoFallback.style.display = 'block';
+                quizLogo.style.display = 'none';
+            } else {
+                quizLogo.style.display = 'none';
+                textLogoFallback.style.display = 'none';
+            }
+
+            // Apply custom colors if provided
+            document.documentElement.style.setProperty('--primary-color', config.primaryColor);
+            document.documentElement.style.setProperty('--accent-color', config.accentColor);
+            document.documentElement.style.setProperty('--option-letter-color', config.optionLetterColor);
+            document.documentElement.style.setProperty('--button-hover-color', config.buttonHoverColor);
+            document.documentElement.style.setProperty('--quiz-container-bg-color', config.primaryColor);
+            document.documentElement.style.setProperty('--text-color', config.textColor || '#333'); // Use textColor from config if available
+            document.documentElement.style.setProperty('--lead-form-bg-color', config.leadForm?.backgroundColor || '#fff');
+            document.documentElement.style.setProperty('--lead-form-text-color', config.leadForm?.textColor || '#333');
+            document.documentElement.style.setProperty('--thank-you-bg-color', config.leadForm?.thankYouBgColor || '#fff');
+            document.documentElement.style.setProperty('--thank-you-text-color', config.leadForm?.thankYouTextColor || '#666');
+
+            // Set body background color
+            document.body.style.backgroundColor = config.primaryColor;
+
+            // Set button background color based on primary color (initial state, hover is separate)
+            document.querySelectorAll('button').forEach(btn => {
+                // Only apply to quiz buttons, not lead form submit button
+                if (!btn.closest('.lead-capture-form')) {
+                    btn.style.backgroundColor = 'transparent'; // Already set to transparent in CSS, but good to be explicit
+                    btn.style.borderColor = config.accentColor; // Use accent color for button borders
+                    btn.style.color = config.accentColor; // Use accent color for button text
+                }
+            });
+
+            // Apply lead form and thank you message content and structure
+            if (config.leadForm) {
+                leadFormTitleElement.textContent = config.leadForm.title || 'Nimm am Gewinnspiel teil!';
+                leadFormDescriptionElement.textContent = config.leadForm.description || 'Fülle das Formular aus, um deine Chance auf tolle Preise zu sichern.';
+                thankYouMessageTitleElement.textContent = config.leadForm.successMessage || 'Vielen Dank für deine Teilnahme!';
+                thankYouMessageDescriptionElement.textContent = config.leadForm.successMessage || 'Wir haben deine Daten erhalten und du bist nun im Lostopf. Viel Glück!';
+
+                // Dynamically build lead form fields
+                leadFormElement.innerHTML = ''; // Clear existing fields
+                if (config.leadForm.fields && config.leadForm.fields.length > 0) {
+                    config.leadForm.fields.forEach(field => {
+                        if (field.enabled) { // Only add enabled fields
+                            const formGroup = document.createElement('div');
+                            formGroup.className = 'form-group';
+
+                            const label = document.createElement('label');
+                            label.htmlFor = field.id;
+                            label.textContent = field.label + (field.required ? ':' : ''); // Add colon for required fields
+                            formGroup.appendChild(label);
+
+                            const input = document.createElement('input');
+                            input.type = field.type;
+                            input.id = field.id;
+                            input.name = field.id;
+                            if (field.required) {
+                                input.required = true;
+                            }
+                            formGroup.appendChild(input);
+                            leadFormElement.appendChild(formGroup);
+                        }
+                    });
+                }
+                const submitFormButton = document.createElement('button');
+                submitFormButton.type = 'submit';
+                submitFormButton.textContent = 'Jetzt teilnehmen';
+                leadFormElement.appendChild(submitFormButton);
+            }
+        }
+
+
+        /**
+         * Displays the current question and its options.
+         */
+        function displayQuestion() {
+            feedbackArea.classList.remove('show', 'correct-feedback', 'incorrect-feedback');
+            feedbackText.textContent = '';
+            moreInfoLink.style.display = 'none';
+            moreInfoLink.href = '#';
+
+            submitButton.textContent = 'Antwort prüfen'; // Reset button text
+            submitButton.disabled = true; // Disable until an option is selected
+            submitButton.onclick = handleSubmitAnswer; // Set handler for checking answer
+
+            optionsList.innerHTML = ''; // Clear previous options
+
+            if (currentQuestionIndex < quizData.length) {
+                const question = quizData[currentQuestionIndex];
+                questionText.textContent = question.question;
+
+                const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+                question.options.forEach((option, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'option-item';
+                    listItem.dataset.index = index;
+                    listItem.innerHTML = `<span class="option-letter">${optionLetters[index]}.</span> ${option}`;
+                    listItem.addEventListener('click', () => selectOption(listItem, index));
+                    optionsList.appendChild(listItem);
+                });
+
+                // Re-enable options for the next question
+                optionsList.querySelectorAll('.option-item').forEach(item => {
+                    item.style.pointerEvents = 'auto';
+                    item.style.cursor = 'pointer';
+                    item.classList.remove('selected', 'correct', 'incorrect'); // Clear previous states
+                });
+                sendQuizHeight(); // Adjust height after question display
+            } else {
+                showResults();
+            }
+        }
+
+        /**
+         * Handles the selection of an option.
+         * @param {HTMLElement} element - The clicked option list item.
+         * @param {number} selectedIndex - The index of the selected option.
+         */
+        function selectOption(element, selectedIndex) {
+            // Remove 'selected' from previously selected option if any
+            if (selectedOptionElement) {
+                selectedOptionElement.classList.remove('selected');
+            }
+            // Add 'selected' to the newly chosen option
+            element.classList.add('selected');
+            selectedOptionElement = element; // Store the selected element
+
+            submitButton.disabled = false; // Enable the submit button once an option is selected
+        }
+
+        /**
+         * Handles the submit button click (check answer or next question).
+         */
+        function handleSubmitAnswer() {
+            if (submitButton.textContent === 'Antwort prüfen') {
+                checkAnswer();
+                sendQuizHeight(); // Adjust height after feedback is shown
+            } else { // It must be 'Nächste Frage'
+                nextQuestion();
+                sendQuizHeight(); // Adjust height after next question
+            }
+        }
+
+        /**
+         * Checks the selected answer against the correct answer.
+         */
+        function checkAnswer() {
+            if (!selectedOptionElement) {
+                showMessage("Bitte wähle eine Antwort aus.");
+                return;
+            }
+
+            const selectedAnswerIndex = parseInt(selectedOptionElement.dataset.index);
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // Disable all options after checking
+            optionsList.querySelectorAll('.option-item').forEach(item => {
+                item.style.pointerEvents = 'none';
+                item.style.cursor = 'default';
+            });
+            submitButton.disabled = false; // Keep enabled for "Nächste Frage"
+
+            // Show feedback
+            feedbackArea.classList.add('show');
+
+            if (selectedAnswerIndex === currentQuestion.answer) {
+                score++;
+                feedbackArea.classList.add('correct-feedback');
+                feedbackText.textContent = currentQuestion.correctFeedback;
+                selectedOptionElement.classList.add('correct');
+            } else {
+                feedbackArea.classList.add('incorrect-feedback');
+                feedbackText.textContent = currentQuestion.incorrectFeedback;
+                selectedOptionElement.classList.add('incorrect');
+                // Highlight the correct answer
+                const correctAnswerElement = optionsList.querySelector(`[data-index="${currentQuestion.answer}"]`);
+                if (correctAnswerElement) {
+                    correctAnswerElement.classList.add('correct');
+                }
+            }
+
+            if (currentQuestion.moreInfo) {
+                moreInfoLink.href = currentQuestion.moreInfo;
+                moreInfoLink.style.display = 'inline-block';
+            }
+
+            // Change submit button to "Nächste Frage" or "Ergebnisse anzeigen"
+            if (currentQuestionIndex < quizData.length - 1) {
+                submitButton.textContent = 'Nächste Frage';
+            } else {
+                submitButton.textContent = 'Ergebnisse anzeigen';
+                submitButton.onclick = showResults; // Change handler for results
+            }
+        }
+
+        /**
+         * Moves to the next question or shows results if all questions are answered.
+         */
+        function nextQuestion() {
+            currentQuestionIndex++;
+            selectedOptionElement = null; // Reset selected option
+            displayQuestion();
+        }
+
+        /**
+         * Displays the final quiz results or the lead capture form.
+         */
+        function showResults() {
+            quizArea.style.display = 'none';
+            feedbackArea.classList.remove('show'); // Hide feedback area
+
+            if (config.leadForm && config.leadForm.enabled) {
+                leadCaptureForm.style.display = 'block';
+                resultsArea.style.display = 'none'; // Ensure default results are hidden
+                sendQuizHeight(); // Adjust height for lead form
+            } else {
+                resultsArea.style.display = 'block';
+                correctAnswersCount.textContent = score;
+                totalQuestionsCount.textContent = quizData.length;
+                leadCaptureForm.style.display = 'none'; // Ensure lead form is hidden
+                sendQuizHeight(); // Adjust height for results
+            }
+        }
+
+        /**
+         * Restarts the quiz from the beginning.
+         */
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            quizArea.style.display = 'block';
+            resultsArea.style.display = 'none';
+            leadCaptureForm.style.display = 'none';
+            thankYouMessage.style.display = 'none';
+            selectedOptionElement = null; // Clear any selected option
+            displayQuestion();
+            sendQuizHeight(); // Adjust height after restarting
+        }
+
+        // --- Event Listener Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            config = getConfigFromUrl();
+            applyConfig();
+
+            if (config && config.quizData && config.quizData.length > 0) {
+                submitButton.addEventListener('click', handleSubmitAnswer); // Main button handler
+                restartQuizBtn.addEventListener('click', startQuiz);
+                restartQuizFromThankYouBtn.addEventListener('click', startQuiz); // Restart from thank you
+                startQuiz();
+            } else {
+                quizOverallTitle.textContent = "Quiz nicht gefunden";
+                questionText.textContent = "Bitte verwenden Sie den Konfigurator, um ein Quiz zu erstellen.";
+                quizArea.style.display = 'block';
+                submitButton.style.display = 'none'; // Hide the button if no quiz
+                optionsList.innerHTML = '';
+            }
+            sendQuizHeight(); // Initial height adjustment on load
+        });
+
+        // Function to send the height of the quiz to the parent window
+        function sendQuizHeight() {
+            // Wait for a brief moment to ensure all elements are rendered and heights are stable
+            setTimeout(() => {
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'quizHeight',
+                        height: document.body.scrollHeight + 50 // Add a bit of extra padding
+                    }, '*'); // Replace '*' with your editor's origin for security
+                }
+            }, 100);
+        }
+
+        // --- Lead Capture Form Handling ---
+        leadFormElement.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            // Collect form data
+            const formData = {};
+            // Iterate over all input fields within the leadFormElement
+            Array.from(leadFormElement.elements).forEach(element => {
+                if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
+                    formData[element.name || element.id] = element.value;
+                }
+            });
+
+            // Simulate sending data to a server
+            console.log('Sending data:', formData);
+            showMessage('Daten werden gesendet...');
+
+            // Simulate a successful submission
+            setTimeout(() => {
+                leadCaptureForm.style.display = 'none';
+                thankYouMessage.style.display = 'block';
+                showMessage(config.leadForm.successMessage || 'Daten erfolgreich gesendet!');
+                sendQuizHeight(); // Adjust height after thank you message
+            }, 2000);
+        });
+    </script>
+
+</body>
+</html>

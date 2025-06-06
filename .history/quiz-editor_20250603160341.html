@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h1, h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="color"],
+        textarea,
+        select { /* select hinzugefügt */
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .add-question-btn, .quiz-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 20px;
+        }
+        .add-question-btn:hover, .quiz-button:hover {
+            background-color: #218838;
+        }
+        .question-item {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .question-item h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        .question-item .options-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .question-item .options-list li {
+            margin-bottom: 5px;
+            color: #666;
+        }
+        .question-item .options-list li.correct-answer {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .edit-btn, .delete-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 5px;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+        }
+        .edit-btn:hover { background-color: #0056b3; }
+        .delete-btn:hover { background-color: #c82333; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+        }
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .option-input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .option-input-group input[type="text"] {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .option-input-group input[type="radio"] {
+            margin-right: 5px;
+        }
+        .preview-container {
+            flex-grow: 1;
+            max-width: 500px;
+            min-width: 300px;
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .preview-iframe {
+            width: 100%;
+            height: 400px; /* Adjust as needed */
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 15px;
+            background-color: #f0f0f0; /* Fallback for iframe background */
+        }
+        .code-output {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 15px;
+            font-size: 0.9em;
+            position: relative; /* For copy button */
+        }
+        .copy-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+        .copy-button:hover {
+            background-color: #0056b3;
+        }
+        .copy-button.top-right {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            margin-top: 0;
+            padding: 5px 8px;
+        }
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                align-items: center;
+            }
+            .container, .preview-container {
+                max-width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Editor</h1>
+        <div class="form-group">
+            <label for="quizTitle">Quiz Titel:</label>
+            <input type="text" id="quizTitle" value="Mein Sommer Quiz" oninput="updateQuiz()">
+        </div>
+
+        <div class="form-group">
+            <label for="logoSelection">Logo auswählen:</label>
+            <select id="logoSelection" onchange="updateQuiz()">
+                <option value="">Kein Logo (Text-Fallback)</option>
+                <option value="assets/lenzerheide_logo.png">Lenzerheide Logo</option>
+                <option value="assets/bike_kingdom_logo.png">Bike Kingdom Logo</option>
+                </select>
+        </div>
+        <div class="form-group">
+            <label for="textLogoFallbackContent">Text-Logo (falls kein Bild):</label>
+            <input type="text" id="textLogoFallbackContent" value="Lenzerheide" oninput="updateQuiz()">
+        </div>
+        <div class="form-group">
+            <label for="primaryColor">Hauptfarbe des Quiz (Hintergrund):</label>
+            <input type="color" id="primaryColor" value="#ff0000" oninput="updateQuiz()">
+        </div>
+        <div class="form-group">
+            <label for="accentColor">Akzentfarbe (Button Text):</label>
+            <input type="color" id="accentColor" value="#b30000" oninput="updateQuiz()">
+        </div>
+         <div class="form-group">
+            <label for="optionLetterColor">Buchstabenfarbe der Optionen:</label>
+            <input type="color" id="optionLetterColor" value="#ff0000" oninput="updateQuiz()">
+        </div>
+         <div class="form-group">
+            <label for="buttonHoverColor">Button Hover Farbe:</label>
+            <input type="color" id="buttonHoverColor" value="#ff0000" oninput="updateQuiz()">
+        </div>
+
+        <h2>Fragen verwalten</h2>
+        <div id="questionsList">
+            </div>
+        <button class="add-question-btn" onclick="openQuestionModal()">Frage hinzufügen</button>
+
+        <h2>Einbettung und Link</h2>
+        <div class="form-group">
+            <label for="directLink">Direkter Link zum Quiz:</label>
+            <div style="position: relative;">
+                 <textarea id="directLink" rows="3" readonly></textarea>
+                 <button class="copy-button top-right" onclick="copyToClipboard('directLink')">Kopieren</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="embedCode">Einbettungscode (iframe):</label>
+            <div style="position: relative;">
+                <textarea id="embedCode" rows="5" readonly></textarea>
+                <button class="copy-button top-right" onclick="copyToClipboard('embedCode')">Kopieren</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="preview-container">
+        <h2>Quiz Vorschau</h2>
+        <iframe id="quizPreview" class="preview-iframe" frameborder="0"></iframe>
+    </div>
+
+    <div id="questionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeQuestionModal()">&times;</span>
+            <h2>Frage bearbeiten</h2>
+            <input type="hidden" id="currentQuestionIndex">
+            <div class="form-group">
+                <label for="questionText">Frage:</label>
+                <textarea id="questionText"></textarea>
+            </div>
+            <div id="optionsInputs">
+                <div class="option-input-group">
+                    <input type="text" class="option-text" placeholder="Option A">
+                    <input type="radio" name="correctOption" value="0">
+                </div>
+                <div class="option-input-group">
+                    <input type="text" class="option-text" placeholder="Option B">
+                    <input type="radio" name="correctOption" value="1">
+                </div>
+                <div class="option-input-group">
+                    <input type="text" class="option-text" placeholder="Option C">
+                    <input type="radio" name="correctOption" value="2">
+                </div>
+                <div class="option-input-group">
+                    <input type="text" class="option-text" placeholder="Option D">
+                    <input type="radio" name="correctOption" value="3">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="moreInfoUrl">Mehr Infos Link (optional):</label>
+                <input type="text" id="moreInfoUrl" placeholder="https://beispiel.com/mehr-infos">
+            </div>
+            <div class="form-group">
+                <label for="correctFeedback">Feedback bei richtiger Antwort:</label>
+                <textarea id="correctFeedback">Super! Das ist richtig.</textarea>
+            </div>
+            <div class="form-group">
+                <label for="incorrectFeedback">Feedback bei falscher Antwort:</label>
+                <textarea id="incorrectFeedback">Leider falsch. Versuch es nochmal!</textarea>
+            </div>
+            <button class="quiz-button" onclick="saveQuestion()">Frage speichern</button>
+        </div>
+    </div>
+
+    <script>
+        const quizTitleInput = document.getElementById('quizTitle');
+        const logoSelection = document.getElementById('logoSelection'); // NEU: Referenz zum Dropdown
+        const textLogoFallbackContentInput = document.getElementById('textLogoFallbackContent');
+        const primaryColorInput = document.getElementById('primaryColor');
+        const accentColorInput = document.getElementById('accentColor');
+        const optionLetterColorInput = document.getElementById('optionLetterColor');
+        const buttonHoverColorInput = document.getElementById('buttonHoverColor');
+        const questionsList = document.getElementById('questionsList');
+        const quizPreviewIframe = document.getElementById('quizPreview');
+        const directLinkTextarea = document.getElementById('directLink');
+        const embedCodeTextarea = document.getElementById('embedCode');
+
+        const questionModal = document.getElementById('questionModal');
+        const currentQuestionIndexInput = document.getElementById('currentQuestionIndex');
+        const questionTextarea = document.getElementById('questionText');
+        const optionTextInputs = document.querySelectorAll('.option-text');
+        const correctOptionRadios = document.querySelectorAll('input[name="correctOption"]');
+        const moreInfoUrlInput = document.getElementById('moreInfoUrl');
+        const correctFeedbackTextarea = document.getElementById('correctFeedback');
+        const incorrectFeedbackTextarea = document.getElementById('incorrectFeedback');
+
+        let quizConfig = {
+            quizTitle: "Mein Sommer Quiz",
+            quizData: [],
+            logoImgSrc: "",
+            textLogoFallbackContent: "Lenzerheide",
+            primaryColor: "#ff0000",
+            accentColor: "#b30000",
+            optionLetterColor: "#ff0000",
+            buttonHoverColor: "#ff0000"
+        };
+
+        // Beispiel-Quizdaten, wenn das Quiz leer ist
+        if (quizConfig.quizData.length === 0) {
+            quizConfig.quizData.push({
+                question: "Wie viele Kilometer präparierte Pisten bietet das Skigebiet Arosa Lenzerheide?",
+                options: ["125 km", "150 km", "225 km", "250 km"],
+                answer: 2, // 0-indexed, so 225 km
+                moreInfo: "https://arosalenzerheide.swiss/de/winter/skifahren-snowboarden/pistenplan-panoramakarte",
+                correctFeedback: "Richtig! Das ist eine riesige Fläche für Wintersport.",
+                incorrectFeedback: "Leider falsch. Die Lenzerheide bietet über 200 Pistenkilometer."
+            });
+            quizConfig.quizData.push({
+                question: "Welcher Berg in Lenzerheide ist bekannt für seine Downhill-Strecken?",
+                options: ["Rothorn", "Stätzerhorn", "Piz Scalottas", "Tgantieni"],
+                answer: 0,
+                moreInfo: "https://www.bikekingdom.ch/de/Bike-Park/Bike-Kingdom-Park",
+                correctFeedback: "Genau! Das Rothorn bietet anspruchsvolle Downhill-Trails.",
+                incorrectFeedback: "Falsch! Das Rothorn ist der Berg für Downhill-Fans."
+            });
+        }
+
+
+        function updateQuiz() {
+            quizConfig.quizTitle = quizTitleInput.value;
+            quizConfig.logoImgSrc = logoSelection.value; // NEU: Wert aus Dropdown
+            quizConfig.textLogoFallbackContent = textLogoFallbackContentInput.value;
+            quizConfig.primaryColor = primaryColorInput.value;
+            quizConfig.accentColor = accentColorInput.value;
+            quizConfig.optionLetterColor = optionLetterColorInput.value;
+            quizConfig.buttonHoverColor = buttonHoverColorInput.value;
+
+            renderQuestionsList();
+            updatePreview();
+            updateLinks();
+        }
+
+        function renderQuestionsList() {
+            questionsList.innerHTML = '';
+            quizConfig.quizData.forEach((q, index) => {
+                const questionItem = document.createElement('div');
+                questionItem.className = 'question-item';
+                questionItem.innerHTML = `
+                    <h3>Frage ${index + 1}: ${q.question}</h3>
+                    <ul class="options-list">
+                        ${q.options.map((opt, i) =>
+                            `<li${i === q.answer ? ' class="correct-answer"' : ''}>${String.fromCharCode(65 + i)}. ${opt}</li>`
+                        ).join('')}
+                    </ul>
+                    <button class="edit-btn" onclick="openQuestionModal(${index})">Bearbeiten</button>
+                    <button class="delete-btn" onclick="deleteQuestion(${index})">Löschen</button>
+                `;
+                questionsList.appendChild(questionItem);
+            });
+        }
+
+        function openQuestionModal(index = -1) {
+            questionModal.style.display = 'flex';
+            if (index === -1) { // Neue Frage
+                currentQuestionIndexInput.value = -1;
+                questionTextarea.value = '';
+                optionTextInputs.forEach(input => input.value = '');
+                correctOptionRadios.forEach(radio => radio.checked = false);
+                moreInfoUrlInput.value = '';
+                correctFeedbackTextarea.value = 'Super! Das ist richtig.';
+                incorrectFeedbackTextarea.value = 'Leider falsch. Versuch es nochmal!';
+            } else { // Frage bearbeiten
+                currentQuestionIndexInput.value = index;
+                const question = quizConfig.quizData[index];
+                questionTextarea.value = question.question;
+                question.options.forEach((opt, i) => optionTextInputs[i].value = opt);
+                correctOptionRadios[question.answer].checked = true;
+                moreInfoUrlInput.value = question.moreInfo || '';
+                correctFeedbackTextarea.value = question.correctFeedback || 'Super! Das ist richtig.';
+                incorrectFeedbackTextarea.value = question.incorrectFeedback || 'Leider falsch. Versuch es nochmal!';
+            }
+        }
+
+        function closeQuestionModal() {
+            questionModal.style.display = 'none';
+        }
+
+        function saveQuestion() {
+            const index = parseInt(currentQuestionIndexInput.value);
+            const questionText = questionTextarea.value;
+            const options = Array.from(optionTextInputs).map(input => input.value);
+            const answer = Array.from(correctOptionRadios).findIndex(radio => radio.checked);
+            const moreInfo = moreInfoUrlInput.value;
+            const correctFeedback = correctFeedbackTextarea.value;
+            const incorrectFeedback = incorrectFeedbackTextarea.value;
+
+            if (!questionText || options.some(opt => !opt) || answer === -1) {
+                alert('Bitte fülle alle Felder aus und wähle eine richtige Antwort.');
+                return;
+            }
+
+            const newQuestion = {
+                question: questionText,
+                options: options,
+                answer: answer,
+                moreInfo: moreInfo,
+                correctFeedback: correctFeedback,
+                incorrectFeedback: incorrectFeedback
+            };
+
+            if (index === -1) {
+                quizConfig.quizData.push(newQuestion);
+            } else {
+                quizConfig.quizData[index] = newQuestion;
+            }
+            updateQuiz();
+            closeQuestionModal();
+        }
+
+        function deleteQuestion(index) {
+            if (confirm('Bist du sicher, dass du diese Frage löschen möchtest?')) {
+                quizConfig.quizData.splice(index, 1);
+                updateQuiz();
+            }
+        }
+
+        function updatePreview() {
+            const jsonString = JSON.stringify(quizConfig);
+            const base64Encoded = btoa(jsonString);
+
+            // WICHTIG: Die vollständige URL zur quiz-widget.html muss hier korrekt sein.
+            // Dies berücksichtigt, ob wir lokal mit Live Server oder auf einem Webserver sind.
+            // Der Pfad zu assets muss relativ zum Basis-HTML sein (z.B. quiz-editor.html oder quiz-widget.html)
+            const currentPath = window.location.pathname;
+            const baseUrl = window.location.origin + currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+            const widgetBaseUrl = baseUrl + 'quiz-widget.html';
+
+
+            // Erzeuge die Data URL für den iframe src
+            const htmlContent = `
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${quizConfig.quizTitle}</title>
+    <style>
+        /* WICHTIG FÜR DIE SCHRIFTART "TheMix Bold": */
+        @font-face {
+            font-family: 'TheMix Bold';
+            /* Pfad relativ zum *gehosteten Ordner*, nicht zur data URL */
+            src: url('${baseUrl}assets/TheMixBold.woff2') format('woff2'),
+                 url('${baseUrl}assets/TheMixBold.woff') format('woff');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            font-family: "TheMix Bold", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            font-weight: bold;
+            background-color: transparent; /* Macht den iframe-Hintergrund transparent */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #quiz-container {
+            background-color: ${quizConfig.primaryColor}; /* Dynamische Farbe */
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 100%;
+            max-width: 480px;
+            min-width: 320px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #logo-container {
+            margin-bottom: 25px;
+            align-self: center;
+        }
+        #logo-container img {
+            max-width: 180px;
+            max-height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        #logo-container .text-logo {
+            font-size: 2em;
+            color: white;
+            padding: 10px 0;
+        }
+
+        #quiz-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        #question-container {
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            font-size: 1.25em;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        #options-container button {
+            display: block;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: ${quizConfig.accentColor}; /* Dynamische Farbe */
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            font-size: 1.05em;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.1s;
+            text-align: left;
+            padding-left: 20px;
+        }
+        #options-container button .option-letter {
+            color: ${quizConfig.optionLetterColor}; /* Dynamische Farbe */
+            margin-right: 8px;
+        }
+        #options-container button:hover:not([disabled]) {
+            background-color: white;
+            color: ${quizConfig.buttonHoverColor}; /* Dynamische Farbe */
+            border-color: white;
+        }
+        #options-container button:active:not([disabled]) {
+            transform: scale(0.98);
+        }
+        #options-container button.correct {
+            background-color: #28a745 !important;
+            color: white !important;
+            border-color: #28a745 !important;
+        }
+        #options-container button.incorrect {
+            background-color: #500000 !important;
+            color: white !important;
+            border-color: #330000 !important;
+            opacity: 0.8;
+        }
+        #options-container button:disabled {
+            cursor: not-allowed;
+        }
+        #options-container button:disabled:not(.correct):not(.incorrect) {
+             opacity: 0.6;
+        }
+
+        #feedback-container {
+            margin-top: 15px;
+            font-size: 1.1em;
+            min-height: 45px;
+            line-height: 1.4;
+        }
+        #feedback-container #feedback-text.correct-feedback {
+            color: #c8ffc8;
+        }
+        #feedback-container #feedback-text.incorrect-feedback {
+            color: #ffc8c8;
+        }
+        #feedback-container a {
+            color: #ffd700;
+            text-decoration: underline;
+            display: block;
+            margin-top: 8px;
+        }
+        #feedback-container a:hover {
+            color: #fffacd;
+        }
+
+        .quiz-button {
+            background-color: white;
+            color: ${quizConfig.primaryColor}; /* Dynamische Farbe */
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.2s, transform 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .quiz-button:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        .quiz-button:active {
+            transform: translateY(0px) scale(0.98);
+        }
+
+        .hide {
+            display: none !important;
+        }
+
+        #score-container {
+            margin-top: 20px;
+        }
+        #score-container h2 {
+            font-size: 1.6em;
+            margin-bottom: 10px;
+            color: white;
+        }
+        #score-container p {
+            font-size: 1.2em;
+            color: white;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 10px; }
+            #quiz-container { padding: 20px; max-width: 100%; }
+            #quiz-title { font-size: 1.5em; }
+            #question-container { font-size: 1.1em; padding: 15px; min-height: 70px; }
+            #options-container button { font-size: 0.95em; padding: 12px; padding-left: 15px; }
+            .quiz-button { padding: 10px 20px; font-size: 0.9em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="quiz-container">
+        <div id="logo-container">
+            <img src="${quizConfig.logoImgSrc}" alt="Quiz Logo" id="quiz-logo"> <div id="text-logo-fallback" class="text-logo hide"></div>
+        </div>
+        <h1 id="quiz-title">Quiz</h1>
+
+        <div id="question-area">
+            <div id="question-container"></div>
+            <div id="options-container">
+                <button class="option" id="option0"></button>
+                <button class="option" id="option1"></button>
+                <button class="option" id="option2"></button>
+                <button class="option" id="option3"></button>
+            </div>
+        </div>
+
+        <div id="feedback-container">
+            <span id="feedback-text"></span>
+            <a id="more-info-link" href="#" target="_blank" rel="noopener noreferrer" class="hide">Mehr erfahren</a>
+        </div>
+
+        <button id="next-question-button" class="quiz-button hide">Nächste Frage</button>
+
+        <div id="score-container" class="hide">
+            <h2>Quiz beendet!</h2>
+            <p>Dein Ergebnis: <span id="score"></span> von <span id="total-questions"></span> richtig.</p>
+            <div id="final-message" style="margin-top: 10px; font-size: 1.1em;"></div>
+            <button id="restart-quiz-button" class="quiz-button">Quiz neu starten</button>
+        </div>
+    </div>
+
+    <script>
+        // Quiz-Konfiguration wird hier direkt als JS-Variable eingefügt
+        // Dies umgeht CORS/Same-Origin-Probleme für lokale Vorschau im iframe.
+        window.quizConfig = ${jsonString};
+
+        // Der Rest des Skripts aus quiz-widget.html folgt hier (ohne Änderung)
+        // (Beginn des Original-Skripts von quiz-widget.html)
+
+        // Standard-Quiz-Daten, falls nichts übermittelt wird (z.B. bei direktem Aufruf der Datei)
+        let quizData = [
+            {
+                question: "Standardfrage: Was ist die Hauptstadt der Schweiz?",
+                options: ["Zürich", "Bern", "Genf", "Lausanne"],
+                answer: 1,
+                moreInfo: "https://de.wikipedia.org/wiki/Bern",
+                correctFeedback: "Richtig! Bern ist die Bundeshauptstadt der Schweiz.",
+                incorrectFeedback: "Leider falsch. Die Hauptstadt der Schweiz ist Bern."
+            }
+        ];
+
+        let quizTitle = "Mein Standard-Quiz";
+        let logoImgSrc = ""; // Keine Standard-URL
+        let textLogoFallbackContent = "Standard-Logo";
+        let primaryColor = "#ff0000"; // Rot
+        let accentColor = "#b30000"; // Dunkelrot (für Button-Text)
+        let optionLetterColor = "#ff0000"; // Rot (für Optionsbuchstaben)
+        let buttonHoverColor = "#ff0000"; // Rot (für Button-Hover)
+
+        // Funktion zum Parsen von URL-Parametern
+        function getQueryParams() {
+            const params = {};
+            window.location.search.substring(1).split('&').forEach(param => {
+                const parts = param.split('=');
+                if (parts[0]) {
+                    params[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1] || '');
+                }
+            });
+            return params;
+        }
+
+        // Konfiguration über URL-Parameter ODER window.quizConfig laden
+        const urlParams = getQueryParams();
+        if (urlParams.config) {
+            try {
+                const decodedConfig = JSON.parse(atob(urlParams.config)); // Base64 dekodieren und JSON parsen
+                if (decodedConfig.quizData) quizData = decodedConfig.quizData;
+                if (decodedConfig.quizTitle) quizTitle = decodedConfig.quizTitle;
+                if (decodedConfig.logoImgSrc) logoImgSrc = decodedConfig.logoImgSrc;
+                if (decodedConfig.textLogoFallbackContent) textLogoFallbackContent = decodedConfig.textLogoFallbackContent;
+                if (decodedConfig.primaryColor) primaryColor = decodedConfig.primaryColor;
+                if (decodedConfig.accentColor) accentColor = decodedConfig.accentColor;
+                if (decodedConfig.optionLetterColor) optionLetterColor = decodedConfig.optionLetterColor;
+                if (decodedConfig.buttonHoverColor) buttonHoverColor = decodedConfig.buttonHoverColor;
+            } catch (e) {
+                console.error("Fehler beim Laden der Quiz-Konfiguration aus URL:", e);
+            }
+        } else if (window.quizConfig) { // Dies ist der neue Teil für die Vorschau
+             if (window.quizConfig.quizData) quizData = window.quizConfig.quizData;
+             if (window.quizConfig.quizTitle) quizTitle = window.quizConfig.quizTitle;
+             if (window.quizConfig.logoImgSrc) logoImgSrc = window.quizConfig.logoImgSrc;
+             if (window.quizConfig.textLogoFallbackContent) textLogoFallbackContent = window.quizConfig.textLogoFallbackContent;
+             if (window.quizConfig.primaryColor) primaryColor = window.quizConfig.primaryColor;
+             if (window.quizConfig.accentColor) accentColor = window.quizConfig.accentColor;
+             if (window.quizConfig.optionLetterColor) optionLetterColor = window.quizConfig.optionLetterColor;
+             if (window.quizConfig.buttonHoverColor) buttonHoverColor = window.quizConfig.buttonHoverColor;
+        }
+
+
+        // Elemente mit Werten aus Konfiguration initialisieren
+        const quizContainer = document.getElementById('quiz-container');
+        const quizTitleElem = document.getElementById('quiz-title');
+        const quizLogo = document.getElementById('quiz-logo');
+        const textLogoFallback = document.getElementById('text-logo-fallback');
+        const optionsContainer = document.getElementById('options-container');
+        const quizButtons = document.querySelectorAll('.quiz-button');
+        const optionButtons = [
+            document.getElementById('option0'),
+            document.getElementById('option1'),
+            document.getElementById('option2'),
+            document.getElementById('option3')
+        ];
+
+        // Apply dynamic styles
+        quizContainer.style.backgroundColor = primaryColor;
+        quizButtons.forEach(button => {
+            button.style.color = primaryColor;
+        });
+        optionButtons.forEach(button => {
+            button.style.color = accentColor;
+            button.querySelector('.option-letter').style.color = optionLetterColor;
+        });
+        // Update hover styles dynamically (requires a bit more JS)
+        // Ensure stylesheet exists
+        const styleSheet = document.styleSheets.length > 0 ? document.styleSheets[0] : document.head.appendChild(document.createElement('style')).sheet;
+
+        // Function to safely insert rule (prevents errors if rule already exists)
+        function insertOrUpdateRule(selector, rule) {
+            let found = false;
+            for (let i = 0; i < styleSheet.cssRules.length; i++) {
+                if (styleSheet.cssRules[i].selectorText === selector) {
+                    // Update existing rule (this is complex and not directly supported in CSSOM for all properties)
+                    // For simplicity, we'll remove and re-add or just ensure it's there
+                    // A more robust solution might manage a dynamic stylesheet just for these rules
+                    found = true;
+                    // For now, we'll just insert, assuming it might overwrite or that re-run is fine for simple styles.
+                    // For dynamic colors, often better to set them directly via JS on elements or use CSS variables.
+                }
+            }
+            if (!found) {
+                 try {
+                    styleSheet.insertRule(`${selector} { ${rule} }`, styleSheet.cssRules.length);
+                 } catch (e) {
+                    console.warn("Could not insert CSS rule:", e);
+                 }
+            }
+        }
+
+        // Dynamische Regeln hinzufügen/aktualisieren
+        insertOrUpdateRule(`#options-container button:hover:not([disabled])`, `color: ${buttonHoverColor} !important;`);
+        insertOrUpdateRule(`#options-container button.correct`, `background-color: #28a745 !important; border-color: #28a745 !important;`);
+        insertOrUpdateRule(`#options-container button.incorrect`, `background-color: #500000 !important; border-color: #330000 !important;`);
+
+
+        quizTitleElem.textContent = quizTitle;
+
+        if (logoImgSrc) {
+            // Im Widget ist logoImgSrc schon der korrekte Pfad (z.B. assets/bike_kingdom_logo.png)
+            quizLogo.src = logoImgSrc;
+            quizLogo.classList.remove('hide');
+            textLogoFallback.classList.add('hide');
+        } else {
+            quizLogo.classList.add('hide');
+            textLogoFallback.textContent = textLogoFallbackContent;
+            textLogoFallback.classList.remove('hide');
+        }
+
+        quizLogo.onerror = function() {
+            quizLogo.classList.add('hide');
+            textLogoFallback.textContent = textLogoFallbackContent;
+            textLogoFallback.classList.remove('hide');
+        };
+
+
+        const questionContainerElem = document.getElementById('question-container');
+        const feedbackTextElem = document.getElementById('feedback-text');
+        const moreInfoLink = document.getElementById('more-info-link');
+        const nextQuestionButton = document.getElementById('next-question-button');
+        const restartQuizButton = document.getElementById('restart-quiz-button');
+        const scoreContainer = document.getElementById('score-container');
+        const scoreElement = document.getElementById('score');
+        const totalQuestionsElement = document.getElementById('total-questions');
+        const questionArea = document.getElementById('question-area');
+        const finalMessageElem = document.getElementById('final-message');
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        function loadQuestion() {
+            if (currentQuestionIndex < quizData.length) {
+                const currentQuestion = quizData[currentQuestionIndex];
+                questionContainerElem.textContent = currentQuestion.question;
+                moreInfoLink.classList.add('hide');
+                feedbackTextElem.textContent = '';
+                feedbackTextElem.className = '';
+
+                currentQuestion.options.forEach((option, index) => {
+                    optionButtons[index].innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span> ${option}`;
+                    optionButtons[index].disabled = false;
+                    optionButtons[index].classList.remove('correct', 'incorrect');
+                    optionButtons[index].onclick = () => checkAnswer(index);
+                });
+                nextQuestionButton.classList.add('hide');
+                questionArea.classList.remove('hide');
+                scoreContainer.classList.add('hide');
+                quizTitleElem.classList.remove('hide');
+
+            } else {
+                showResults();
+            }
+        }
+
+        function checkAnswer(selectedIndex) {
+            const currentQuestion = quizData[currentQuestionIndex];
+            optionButtons.forEach(button => button.disabled = true);
+
+            if (selectedIndex === currentQuestion.answer) {
+                optionButtons[selectedIndex].classList.add('correct');
+                feedbackTextElem.textContent = currentQuestion.correctFeedback;
+                feedbackTextElem.classList.add('correct-feedback');
+                score++;
+            } else {
+                optionButtons[selectedIndex].classList.add('incorrect');
+                optionButtons[currentQuestion.answer].classList.add('correct');
+                feedbackTextElem.textContent = currentQuestion.incorrectFeedback;
+                feedbackTextElem.classList.add('incorrect-feedback');
+            }
+
+            if (currentQuestion.moreInfo) {
+                moreInfoLink.href = currentQuestion.moreInfo;
+                moreInfoLink.classList.remove('hide');
+            }
+            nextQuestionButton.classList.remove('hide');
+        }
+
+        function showNextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            questionArea.classList.add('hide');
+            feedbackTextElem.textContent = '';
+            moreInfoLink.classList.add('hide');
+            nextQuestionButton.classList.add('hide');
+            quizTitleElem.classList.add('hide');
+            scoreContainer.classList.remove('hide');
+            scoreElement.textContent = score;
+            totalQuestionsElement.textContent = quizData.length;
+
+            if (score === quizData.length) {
+                finalMessageElem.textContent = "Wow, volle Punktzahl! Du bist ein echter Experte! 🥇";
+            } else if (score >= quizData.length / 2) {
+                finalMessageElem.textContent = "Sehr gut! Du kennst dich schon gut aus! 👍";
+            } else {
+                finalMessageElem.textContent = "Da geht noch was! Schau dir die 'Mehr erfahren'-Links an und versuch's nochmal! 😊";
+            }
+        }
+
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreContainer.classList.add('hide');
+            finalMessageElem.textContent = '';
+            loadQuestion();
+        }
+
+        nextQuestionButton.addEventListener('click', showNextQuestion);
+        restartQuizButton.addEventListener('click', restartQuiz);
+
+        loadQuestion();
+    </script>
+</body>
+</html>

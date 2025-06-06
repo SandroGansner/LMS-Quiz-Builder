@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS Quiz Builder Startseite</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+            flex-direction: column;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .button-link {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.2em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .button-link:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        .button-link:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <h1>Willkommen beim LMS Quiz Builder!</h1>
+    <a href="quiz-editor.html" class="button-link">Quiz Konfigurator starten</a>
+    <p style="margin-top: 20px; color: #666;">Alle Dateien sollten im selben Verzeichnis auf eurem Webserver liegen.</p>
+</body>
+</html>
