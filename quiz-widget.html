@@ -44,9 +44,9 @@
 
         .quiz-container, .lead-form-page, .thank-you-page {
             width: 100%;
-            max-width: 400px;
-            height: 500px;
-            aspect-ratio: 4 / 5;
+            max-width: 450px;
+            min-height: 500px;
+            height: auto;
             background-color: var(--primary-color);
             padding: 1.5rem;
             border-radius: 1rem;
@@ -100,9 +100,8 @@
             font-weight: 700;
             margin-bottom: 0.5rem;
             line-height: 1.2;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            word-break: break-word;
+            white-space: normal;
         }
 
         .quiz-progress {
@@ -139,11 +138,18 @@
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
+            word-break: break-word;
+            white-space: normal;
         }
 
         .question-text {
             font-weight: 600;
             font-size: 1.1rem;
+            background-color: #ffffff;
+            color: #000000;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            word-break: break-word;
         }
 
         .options-list {
@@ -160,7 +166,7 @@
 
         .option-button {
             background-color: #ffffff;
-            border: 1px solid #ffffff;
+            border: 2px solid #ffffff;
             color: #000000;
             padding: 0.5rem 0.75rem;
             border-radius: 0.5rem;
@@ -200,8 +206,8 @@
             min-height: 1.5em;
             line-height: 1.5em;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            word-break: break-word;
+            white-space: normal;
         }
 
         .feedback-message.correct {
@@ -225,12 +231,14 @@
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
             font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             border: none;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             flex-grow: 1;
             max-width: 150px;
+            word-break: break-word;
         }
 
         .nav-button:hover {
@@ -252,8 +260,8 @@
             cursor: pointer;
             font-size: 0.9rem;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            word-break: break-word;
+            white-space: normal;
         }
 
         .more-info-link:hover {
