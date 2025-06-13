@@ -1,0 +1,29 @@
+name: lms_quiz_tool
+description: Flutter app for interactive quiz with Firebase backend
+version: 1.0.0
+publish_to: "none"
+
+environment:
+  sdk: ">=2.17.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^2.0.0
+  cloud_firestore: ^4.0.0
+  firebase_auth: ^4.0.0
+  flutter_web_plugins:
+    sdk: flutter
+  provider: ^6.0.0
+  share_plus: ^7.0.0
+  uuid: ^3.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/lenzerheide_logo.png
+    - assets/bikekingdom_logo.png
